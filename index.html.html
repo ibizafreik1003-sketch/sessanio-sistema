@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sessanio · Sistema</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --menta:#e8f5e9;
+  --menta2:#c8e6c9;
+  --menta3:#a5d6a7;
+  --menta-dark:#388e3c;
+  --menta-deep:#2e7d32;
+  --dorado:#d4891a;
+  --dorado2:#e8a030;
+  --dorado-pale:#fff8e1;
+  --texto:#1b3a1e;
+  --muted:#5a7a5e;
+  --linea:#c8e6c9;
+  --sup:#ffffff;
+  --rojo:#c62828;
+  --rojo-pale:#ffebee;
+  --amarillo:#f57f17;
+  --verde:#2e7d32;
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--menta);color:var(--texto);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;padding-bottom:80px;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+
+/* LOGIN */
+#loginScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#e8f5e9 0%,#c8e6c9 50%,#a5d6a7 100%);
+  padding:24px;
+}
+.login-card{
+  background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;
+  box-shadow:0 8px 40px rgba(46,125,50,.15);border:1px solid var(--linea);
+}
+.login-logo{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:2rem;font-weight:600;color:var(--menta-deep);text-align:center;margin-bottom:4px;}
+.login-logo span{color:var(--dorado);}
+.login-sub{text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:28px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.login-field input,.login-field select{
+  width:100%;border:1.5px solid var(--linea);border-radius:10px;
+  padding:12px 14px;font-size:.92rem;color:var(--texto);background:#fff;transition:border .2s;
+}
+.login-field input:focus,.login-field select:focus{outline:none;border-color:var(--dorado);}
+.btn-login{
+  width:100%;background:var(--menta-deep);color:#fff;border:none;border-radius:10px;
+  padding:14px;font-size:.95rem;font-weight:700;margin-top:8px;
+}
+.login-err{color:var(--rojo);font-size:.78rem;text-align:center;margin-top:8px;min-height:20px;}
+
+/* HEADER */
+.header{
+  background:var(--menta-deep);color:#fff;
+  padding:14px 16px 12px;position:sticky;top:0;z-index:40;
+  border-bottom:2px solid var(--dorado);
+}
+.header-top{display:flex;align-items:center;gap:10px;}
+.logo{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.35rem;font-weight:600;}
+.logo span{color:var(--dorado2);}
+.rol-badge{
+  font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+}
+.user-badge{margin-left:auto;font-size:.72rem;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;gap:6px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;}
+.sync-dot.green{background:#69f0ae;animation:pulse 2s infinite;}
+.sync-dot.yellow{background:var(--dorado2);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+/* ALERT BANNER */
+.alert-banner{
+  background:var(--rojo);color:#fff;
+  padding:9px 16px;font-size:.8rem;font-weight:600;
+  display:none;align-items:center;gap:8px;cursor:pointer;
+}
+.alert-banner.show{display:flex;}
+.alert-cnt{background:rgba(255,255,255,.25);border-radius:20px;padding:2px 8px;font-size:.7rem;}
+
+/* TABS */
+.tabs{
+  display:flex;background:var(--menta-deep);padding:0 14px;
+  border-bottom:2px solid var(--dorado);overflow-x:auto;scrollbar-width:none;
+}
+.tab{
+  background:none;border:none;color:rgba(255,255,255,.5);
+  padding:12px 16px 10px;font-size:.77rem;font-weight:600;
+  border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;
+}
+.tab.active{color:var(--dorado2);border-bottom-color:var(--dorado2);}
+
+/* TOOLBAR */
+.toolbar{
+  background:var(--menta2);border-bottom:1px solid var(--linea);
+  padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.search{
+  flex:1;min-width:120px;padding:8px 12px;border:1.5px solid var(--menta3);
+  border-radius:20px;background:#fff;font-size:.82rem;color:var(--texto);
+}
+.search:focus{outline:none;border-color:var(--dorado);}
+.btn{border:none;border-radius:20px;padding:8px 14px;font-size:.76rem;font-weight:600;}
+.btn-verde{background:var(--menta-deep);color:#fff;}
+.btn-dorado{background:var(--dorado);color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--menta-dark);color:var(--menta-dark);}
+.btn-rojo{background:var(--rojo);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:.72rem;}
+
+/* CONTENT */
+.content{padding:14px 15px;max-width:620px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+
+/* CATEGORY SECTION */
+.cat-sec{margin-bottom:16px;}
+.cat-head{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--menta2);border-left:3px solid var(--dorado);
+  padding:9px 12px;border-radius:0 var(--radius) var(--radius) 0;
+  cursor:pointer;margin-bottom:6px;
+}
+.cat-head .cn{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;color:var(--menta-deep);}
+.cat-head .cm{font-size:.68rem;color:var(--muted);}
+.cat-body{background:#fff;border:1px solid var(--linea);border-radius:var(--radius);overflow:hidden;}
+
+/* ITEM ROW */
+.item-header{
+  display:grid;gap:4px;padding:5px 10px;
+  background:var(--menta2);
+  font-size:.63rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;
+}
+.item-row{display:grid;gap:4px;padding:8px 10px;border-bottom:1px solid var(--menta);align-items:center;font-size:.82rem;}
+.item-row:last-of-type{border-bottom:none;}
+.item-row.low{background:#fffde7;}
+.item-row.crit{background:#ffebee;}
+/* layout: nombre | unid | actual | min | barra | del */
+.item-header,.item-row{grid-template-columns:1fr 42px 52px 44px 56px 26px;}
+.iname{font-weight:500;font-size:.82rem;}
+.iname .unit-lbl{display:block;font-size:.64rem;color:var(--muted);font-weight:400;}
+.qty-inp{
+  width:100%;text-align:center;padding:5px 2px;border:1.5px solid var(--linea);
+  border-radius:6px;background:#fafffe;font-size:.84rem;font-weight:600;color:var(--texto);
+}
+.qty-inp:focus{outline:none;border-color:var(--dorado);}
+.qty-inp.low{border-color:var(--amarillo);background:#fffde7;color:var(--amarillo);}
+.qty-inp.crit{border-color:var(--rojo);background:#ffebee;color:var(--rojo);}
+.bar-wrap{display:flex;flex-direction:column;gap:2px;}
+.bar-bg{height:5px;background:var(--menta2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;}
+.bar-lbl{font-size:.58rem;color:var(--muted);text-align:center;}
+.del-btn{background:none;border:none;color:var(--linea);font-size:.9rem;padding:2px;}
+.del-btn:hover{color:var(--rojo);}
+
+/* ADD ROW */
+.add-row{
+  display:flex;gap:6px;padding:8px 10px;border-top:1px dashed var(--linea);flex-wrap:wrap;
+  background:#fafffe;
+}
+.add-row input,.add-row select{
+  border:1.5px solid var(--linea);border-radius:6px;padding:6px 8px;font-size:.78rem;color:var(--texto);
+}
+.add-row input[name=nn]{flex:1;min-width:90px;}
+
+/* POS / VENTA */
+.pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.pos-cat-title{
+  grid-column:1/-1;font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:1rem;color:var(--dorado);border-bottom:1px solid var(--linea);padding-bottom:5px;margin-top:8px;
+}
+.pos-item{
+  background:#fff;border:1.5px solid var(--linea);border-radius:var(--radius);
+  padding:12px 10px;text-align:center;cursor:pointer;transition:all .18s;
+}
+.pos-item:hover{border-color:var(--dorado);background:var(--dorado-pale);}
+.pos-item.added{border-color:var(--menta-dark);background:var(--menta);}
+.pos-item .pname{font-size:.82rem;font-weight:600;color:var(--texto);}
+.pos-item .pprice{font-size:.72rem;color:var(--muted);margin-top:2px;}
+
+/* CARRITO */
+.cart-panel{
+  position:fixed;bottom:80px;right:14px;width:min(320px,calc(100vw - 28px));
+  background:#fff;border:1.5px solid var(--linea);border-radius:16px;
+  box-shadow:0 8px 32px rgba(46,125,50,.2);z-index:60;
+  max-height:60vh;display:flex;flex-direction:column;
+  transform:translateY(20px);opacity:0;pointer-events:none;transition:all .25s;
+}
+.cart-panel.open{transform:translateY(0);opacity:1;pointer-events:all;}
+.cart-header{
+  padding:12px 14px;background:var(--menta-deep);color:#fff;
+  border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;
+}
+.cart-body{overflow-y:auto;flex:1;padding:10px 14px;}
+.cart-row{
+  display:grid;grid-template-columns:1fr 70px 26px;gap:8px;
+  align-items:center;padding:6px 0;border-bottom:1px solid var(--menta);font-size:.82rem;
+}
+.cart-row:last-child{border-bottom:none;}
+.cart-qty{display:flex;align-items:center;gap:4px;}
+.qty-btn{background:var(--menta2);border:none;border-radius:4px;width:22px;height:22px;font-weight:700;font-size:.85rem;color:var(--menta-deep);}
+.cart-foot{padding:12px 14px;border-top:1px solid var(--linea);}
+.cart-total{font-weight:700;font-size:1rem;color:var(--menta-deep);margin-bottom:10px;}
+.btn-cobrar{width:100%;background:var(--dorado);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.95rem;font-weight:700;}
+.fab-cart{
+  position:fixed;bottom:88px;right:14px;
+  background:var(--dorado);color:#fff;border:none;border-radius:50%;
+  width:52px;height:52px;font-size:1.3rem;box-shadow:0 4px 16px rgba(212,137,26,.5);
+  z-index:55;display:none;
+}
+.fab-badge{
+  position:absolute;top:-4px;right:-4px;background:var(--rojo);color:#fff;
+  font-size:.62rem;font-weight:800;border-radius:50%;width:18px;height:18px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ALERTAS */
+.alerta-card{
+  background:#fff;border-left:3px solid var(--rojo);
+  border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;margin-bottom:8px;
+}
+.alerta-card.warn{border-left-color:var(--amarillo);}
+.alerta-card .an{font-weight:600;font-size:.85rem;}
+.alerta-card .ai{font-size:.74rem;color:var(--muted);margin-top:2px;}
+
+/* ADMIN USUARIOS */
+.user-card{
+  background:#fff;border:1px solid var(--linea);border-radius:var(--radius);
+  padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;
+}
+.user-avatar{
+  width:38px;height:38px;border-radius:50%;background:var(--menta2);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:var(--menta-deep);flex-shrink:0;
+}
+.user-info{flex:1;}
+.user-info .un{font-weight:600;font-size:.88rem;}
+.user-info .ur{font-size:.72rem;color:var(--muted);}
+.user-del{background:none;border:1px solid var(--linea);border-radius:6px;color:var(--rojo);font-size:.72rem;padding:5px 9px;cursor:pointer;}
+
+/* REPORTES */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:#fff;border:1px solid var(--linea);border-radius:var(--radius);padding:14px;text-align:center;}
+.stat-card .sv{font-size:1.6rem;font-weight:800;color:var(--menta-deep);}
+.stat-card .sl{font-size:.72rem;color:var(--muted);margin-top:3px;}
+.venta-row{
+  display:grid;grid-template-columns:1fr 80px 70px 30px;gap:6px;align-items:center;
+  padding:8px 10px;border-bottom:1px solid var(--menta);font-size:.8rem;background:#fff;
+}
+.venta-row.head{background:var(--menta2);font-size:.65rem;text-transform:uppercase;color:var(--muted);font-weight:600;}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal-sh{
+  background:#fff;width:100%;max-width:500px;border-radius:20px 20px 0 0;
+  padding:20px;max-height:80vh;overflow-y:auto;animation:su .3s;
+}
+@keyframes su{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.mhandle{width:40px;height:4px;background:var(--linea);border-radius:2px;margin:0 auto 14px;}
+.modal-sh h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--menta-deep);margin-bottom:14px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.ff input,.ff select{width:100%;border:1.5px solid var(--linea);border-radius:8px;padding:10px 12px;font-size:.88rem;color:var(--texto);}
+.ff input:focus,.ff select:focus{outline:none;border-color:var(--dorado);}
+.btn-full{width:100%;padding:13px;border-radius:10px;font-size:.9rem;font-weight:700;border:none;margin-top:6px;}
+.btn-full.verde{background:var(--menta-deep);color:#fff;}
+.btn-full.dorado{background:var(--dorado);color:#fff;}
+.btn-full.outline{background:transparent;border:1.5px solid var(--linea);color:var(--muted);}
+.steps{list-style:none;margin-bottom:14px;}
+.steps li{font-size:.76rem;color:var(--muted);padding:5px 0 5px 24px;position:relative;line-height:1.5;}
+.steps li::before{content:attr(data-n);position:absolute;left:0;background:var(--dorado);color:#fff;width:17px;height:17px;border-radius:50%;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.connected-ok{background:#e8f5e9;border:1px solid var(--menta3);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--menta-deep);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--menta-deep);color:#fff;font-size:.8rem;font-weight:600;
+  padding:10px 20px;border-radius:20px;z-index:500;white-space:nowrap;max-width:90vw;text-align:center;
+  animation:tst 3.2s forwards;pointer-events:none;
+}
+@keyframes tst{0%{opacity:0;transform:translateX(-50%) translateY(8px);}15%,80%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;}}
+
+/* NAV */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--menta-deep);
+  display:flex;justify-content:space-around;
+  padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-top:2px solid var(--dorado);
+}
+.nb{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:rgba(255,255,255,.45);font-size:.62rem;padding:4px 10px;}
+.nb .ic{font-size:1.2rem;}
+.nb.active{color:var(--dorado2);}
+
+::-webkit-scrollbar{display:none;}
+@media print{.header,.tabs,.toolbar,.nav,.cart-panel,.fab-cart,.modal-ov,.toast,.alert-banner{display:none!important;}.content{padding:0;}body{padding:0;}}
+
+/* ── FORMATOS OPERATIVOS ── */
+.formato-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.formato-card{
+  background:#fff;border:1.5px solid var(--linea);border-radius:var(--radius);
+  padding:14px;text-align:center;cursor:pointer;transition:all .18s;
+}
+.formato-card:hover{border-color:var(--dorado);background:var(--dorado-pale);}
+.formato-card .fic{font-size:1.8rem;margin-bottom:6px;}
+.formato-card .fn{font-size:.82rem;font-weight:600;color:var(--texto);}
+.formato-card .fd{font-size:.7rem;color:var(--muted);margin-top:2px;}
+
+/* Modal formatos */
+.fmodal-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;}
+.fmodal-ov.open{display:flex;}
+.fmodal-sh{
+  background:#fff;width:100%;max-width:500px;border-radius:16px;
+  padding:20px;margin:auto;
+}
+.fmodal-sh h3{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--menta-deep);margin-bottom:16px;}
+.frow{margin-bottom:11px;}
+.frow label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.frow input,.frow select,.frow textarea{
+  width:100%;border:1.5px solid var(--linea);border-radius:8px;
+  padding:9px 12px;font-size:.88rem;color:var(--texto);
+}
+.frow textarea{min-height:60px;resize:vertical;}
+.frow input:focus,.frow select:focus,.frow textarea:focus{outline:none;border-color:var(--dorado);}
+.fsec{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;color:var(--dorado);margin:14px 0 8px;border-bottom:1px solid var(--linea);padding-bottom:4px;}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.btn-pdf{
+  width:100%;background:var(--dorado);color:#fff;border:none;border-radius:10px;
+  padding:13px;font-size:.9rem;font-weight:700;margin-top:10px;cursor:pointer;
+}
+.btn-guardar-fmt{
+  width:100%;background:var(--menta-deep);color:#fff;border:none;border-radius:10px;
+  padding:12px;font-size:.88rem;font-weight:700;margin-top:8px;cursor:pointer;
+}
+.hist-row{
+  background:#fff;border:1px solid var(--linea);border-radius:10px;
+  padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:.82rem;
+}
+.hist-row .ht{font-weight:600;color:var(--texto);}
+.hist-row .hd{font-size:.72rem;color:var(--muted);}
+.hist-row .hbtn{margin-left:auto;background:var(--menta2);border:none;border-radius:6px;padding:5px 10px;font-size:.72rem;font-weight:600;color:var(--menta-deep);cursor:pointer;}
+
+/* Mobiliario */
+.mob-row{
+  display:grid;grid-template-columns:1fr 70px 70px 60px 28px;
+  gap:4px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--menta);font-size:.82rem;
+}
+.mob-head{
+  display:grid;grid-template-columns:1fr 70px 70px 60px 28px;
+  gap:4px;padding:5px 10px;background:var(--menta2);
+  font-size:.63rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;
+}
+.mob-inp{
+  width:100%;border:1.5px solid var(--linea);border-radius:6px;
+  padding:5px 3px;text-align:center;font-size:.82rem;color:var(--texto);
+}
+.mob-inp:focus{outline:none;border-color:var(--dorado);}
+.estado-chip{font-size:.65rem;padding:2px 6px;border-radius:10px;font-weight:600;}
+.estado-bueno{background:#e8f5e9;color:#2e7d32;}
+.estado-regular{background:#fff8e1;color:#f57f17;}
+.estado-danado{background:#ffebee;color:#c62828;}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Sessanio <span>·</span></div>
+    <div class="login-sub">Sistema de gestión interno</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="loginErr"></div>
+    <div style="margin-top:14px;font-size:.72rem;color:var(--muted);text-align:center;">¿Olvidaste tu clave? Contacta al administrador.</div>
+  </div>
+</div>
+
+<!-- ══════════ APP ══════════ -->
+<div id="appShell" style="display:none;">
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">Sessanio <span>·</span></div>
+    <span class="rol-badge" id="rolBadge">—</span>
+    <div class="user-badge" onclick="openFbModal()">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLbl">offline</span>
+    </div>
+  </div>
+</div>
+
+<div class="alert-banner" id="alertBanner" onclick="setScreen('alertas')">
+  ⚠️ Productos bajo mínimo · <span class="alert-cnt" id="alertCnt">0</span>
+  <span style="margin-left:auto;">Ver →</span>
+</div>
+
+<div class="tabs" id="mainTabs"></div>
+
+<div class="toolbar" id="mainToolbar" style="display:none;">
+  <input class="search" id="searchInp" placeholder="🔍 Buscar...">
+  <button class="btn btn-dorado btn-sm" onclick="syncNow()">↑↓</button>
+  <button class="btn btn-verde btn-sm" id="btnFbConf" onclick="openFbModal()">☁️</button>
+</div>
+
+<div class="content">
+  <!-- INVENTARIO MATERIA PRIMA -->
+  <div class="screen" id="screen-inv">
+    <div id="invContainer"></div>
+  </div>
+  <!-- INVENTARIO PRODUCTOS/MENÚ -->
+  <div class="screen" id="screen-menu">
+    <div id="menuContainer"></div>
+  </div>
+  <!-- RECETAS -->
+  <div class="screen" id="screen-rec">
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">Define qué ingredientes consume cada producto al venderse. Sin receta, no se descuenta nada del inventario.</div>
+    <div id="recContainer"></div>
+  </div>
+  <!-- POS VENTAS -->
+  <div class="screen" id="screen-pos">
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;">Toca un producto para agregarlo al pedido</div>
+    <div id="posGrid"></div>
+  </div>
+  <!-- ALERTAS -->
+  <div class="screen" id="screen-alertas">
+    <div id="alertasContainer"></div>
+  </div>
+  <!-- REPORTES -->
+  <div class="screen" id="screen-rep">
+    <div id="repContainer"></div>
+  </div>
+  <!-- ADMIN USUARIOS -->
+  <div class="screen" id="screen-users">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-style:italic;">Usuarios del sistema</div>
+      <button class="btn btn-dorado btn-sm" onclick="openUserModal()">+ Nuevo</button>
+    </div>
+    <div id="userList"></div>
+  </div>
+
+  <!-- FORMATOS OPERATIVOS -->
+  <div class="screen" id="screen-fmt">
+    <div id="fmtContainer"></div>
+  </div>
+  <!-- MOBILIARIO Y UTENSILIOS -->
+  <div class="screen" id="screen-mob">
+    <div id="mobContainer"></div>
+  </div>
+</div><!-- /content -->
+
+<!-- FAB carrito -->
+<button class="fab-cart" id="fabCart" onclick="toggleCart()">🛒<span class="fab-badge" id="fabBadge">0</span></button>
+
+<!-- Panel carrito -->
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <span style="font-weight:700;">🛒 Pedido actual</span>
+    <button onclick="toggleCart()" style="background:none;border:none;color:#fff;font-size:1.1rem;">✕</button>
+  </div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-foot">
+    <div class="cart-total" id="cartTotal">Total: $0</div>
+    <button class="btn-cobrar" onclick="cobrar()">✅ Registrar venta</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav" id="mainNav"></div>
+
+</div><!-- /appShell -->
+
+<!-- MODALES -->
+<div class="modal-ov" id="fbModal" onclick="if(event.target===this)closeFbModal()">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3>☁️ Sincronización Firebase</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">Conecta Firebase para sincronizar en tiempo real entre todos los dispositivos del Sessanio.</p>
+    <ol class="steps">
+      <li data-n="1">Entra a <strong style="color:var(--dorado)">console.firebase.google.com</strong></li>
+      <li data-n="2">Crea proyecto → <em>sessanio-sistema</em></li>
+      <li data-n="3">Realtime Database → Crear → modo prueba</li>
+      <li data-n="4">⚙️ Configuración → Apps Web → Registrar → copia la config</li>
+    </ol>
+    <div id="fbFormArea">
+      <div class="ff"><label>Database URL</label><input type="url" id="fbUrl" placeholder="https://sessanio-sistema-default-rtdb.firebaseio.com"></div>
+      <div class="ff"><label>API Key</label><input type="text" id="fbKey" placeholder="AIzaSy..."></div>
+      <button class="btn-full dorado" onclick="connectFb()">Conectar</button>
+      <button class="btn-full outline" onclick="usarOffline()">Solo offline (este dispositivo)</button>
+    </div>
+    <div id="fbOkArea" style="display:none;">
+      <div class="connected-ok">✅ <div><strong>Firebase activo</strong><div style="font-size:.7rem;margin-top:2px;" id="fbUrlLbl"></div></div>
+      <button onclick="disconnFb()" style="margin-left:auto;background:none;border:none;color:var(--rojo);font-size:.74rem;cursor:pointer;">Desconectar</button></div>
+    </div>
+    <button class="btn-full outline" style="margin-top:10px;" onclick="closeFbModal()">Cerrar</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="userModal" onclick="if(event.target===this)closeUserModal()">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3>➕ Nuevo usuario</h3>
+    <div class="ff"><label>Nombre completo</label><input type="text" id="nuNombre" placeholder="Ej: María Cocina"></div>
+    <div class="ff"><label>Usuario (sin espacios)</label><input type="text" id="nuUser" placeholder="mariacocina"></div>
+    <div class="ff"><label>Contraseña</label><input type="password" id="nuPass" placeholder="Mínimo 6 caracteres"></div>
+    <div class="ff"><label>Rol</label>
+      <select id="nuRol">
+        <option value="cocina">🍳 Cocina — inventario materia prima</option>
+        <option value="caja">💰 Caja — ventas y POS</option>
+        <option value="admin">👑 Admin — acceso completo</option>
+      </select>
+    </div>
+    <button class="btn-full dorado" onclick="crearUsuario()">Crear usuario</button>
+    <button class="btn-full outline" onclick="closeUserModal()">Cancelar</button>
+  </div>
+</div>
+
+
+
+<!-- MODAL FORMATOS -->
+<div class="fmodal-ov" id="fmtModal" onclick="if(event.target===this)closeFmtModal()">
+  <div class="fmodal-sh">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 id="fmtModalTitle" style="margin:0;"></h3>
+      <button onclick="closeFmtModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <div id="fmtBody"></div>
+    <button class="btn-pdf" onclick="generarPDF()">📄 Guardar y generar PDF</button>
+    <button class="btn-full outline" style="margin-top:8px;" onclick="closeFmtModal()">Cancelar</button>
+  </div>
+</div>
+<!-- MODAL EDITAR RECETA -->
+<div class="modal-ov" id="recModal" onclick="if(event.target===this)closeRecModal()">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3 id="recModalTitle">Editar receta</h3>
+    <p style="font-size:.76rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">Cada ingrediente se descontará del inventario de materia prima al registrar una venta con este producto.</p>
+    <div id="recLines" style="margin-bottom:10px;"></div>
+    <button class="btn btn-outline" style="width:100%;padding:9px;border-radius:8px;font-size:.8rem;margin-bottom:12px;" onclick="addRecLine()">+ Agregar ingrediente</button>
+    <button class="btn-full dorado" onclick="saveReceta()">💾 Guardar receta</button>
+    <button class="btn-full outline" style="margin-top:8px;" onclick="closeRecModal()">Cancelar</button>
+  </div>
+</div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+/* ══════════════════════════════════════════
+   CATÁLOGO DE MATERIA PRIMA
+══════════════════════════════════════════ */
+const CATALOG=[
+  {cat:'Lácteos y huevos',items:[
+    {name:'Leche entera',unit:'l',min:5},{name:'Leche de almendras',unit:'l',min:2},
+    {name:'Queso crema',unit:'kg',min:2},{name:'Queso cheddar',unit:'kg',min:1},
+    {name:'Queso mozzarella',unit:'kg',min:1},{name:'Crema de leche / agria',unit:'l',min:1},
+    {name:'Mantequilla',unit:'kg',min:1},{name:'Huevos',unit:'unidad',min:60},{name:'Yogur griego',unit:'kg',min:2}]},
+  {cat:'Masas y panadería',items:[
+    {name:'Harina de trigo',unit:'kg',min:10},{name:'Harina de almendras',unit:'kg',min:2},
+    {name:'Masa laminada (cornetti)',unit:'unidad',min:20},{name:'Pan para emparedado',unit:'unidad',min:20},
+    {name:'Galletas base (cheesecake)',unit:'paquete',min:3},{name:'Azúcar',unit:'kg',min:5},{name:'Levadura',unit:'paquete',min:2}]},
+  {cat:'Frutas y verduras',items:[
+    {name:'Banano',unit:'kg',min:3},{name:'Fresas',unit:'kg',min:2},{name:'Frutos rojos',unit:'kg',min:1},
+    {name:'Manzana',unit:'kg',min:3},{name:'Limón',unit:'kg',min:2},{name:'Naranja',unit:'kg',min:3},
+    {name:'Aguacate',unit:'unidad',min:5},{name:'Tomate',unit:'kg',min:2},{name:'Cebolla',unit:'kg',min:2},
+    {name:'Albahaca / hierbas frescas',unit:'unidad',min:2}]},
+  {cat:'Carnes y embutidos',items:[
+    {name:'Pollo (pechuga)',unit:'kg',min:3},{name:'Carne de res (pecho/desmechada)',unit:'kg',min:3},
+    {name:'Cerdo desmechado',unit:'kg',min:2},{name:'Tocineta',unit:'kg',min:1},
+    {name:'Jamón serrano',unit:'kg',min:1},{name:'Salami / pepperoni',unit:'kg',min:1}]},
+  {cat:'Café, té y chocolatería',items:[
+    {name:'Café en grano',unit:'kg',min:3},{name:'Té negro / hebras surtidas',unit:'paquete',min:3},
+    {name:'Chai concentrado',unit:'l',min:1},{name:'Chocolate de mesa',unit:'kg',min:2}]},
+  {cat:'Licores y bebidas',items:[
+    {name:'Cerveza',unit:'botella',min:12},{name:'Stella Artois',unit:'botella',min:12},
+    {name:'Vodka',unit:'botella',min:1},{name:'Brandy',unit:'botella',min:1},
+    {name:'Whisky (crema)',unit:'botella',min:1},{name:'Amaretto',unit:'botella',min:1},
+    {name:'Coca-Cola',unit:'botella',min:12},{name:'Ginger Ale',unit:'botella',min:6},{name:'Agua manantial',unit:'botella',min:12}]},
+  {cat:'Insumos de cocina',items:[
+    {name:'Helado artesanal',unit:'kg',min:2},{name:'Granola',unit:'kg',min:1},
+    {name:'Mermelada de fruta',unit:'kg',min:1},{name:'Arequipe',unit:'kg',min:1}]},
+  {cat:'Desechables',items:[
+    {name:'Vasos bebidas frías',unit:'paquete',min:3},{name:'Vasos café caliente',unit:'paquete',min:3},
+    {name:'Tapas',unit:'paquete',min:3},{name:'Servilletas',unit:'paquete',min:5},
+    {name:'Cajas para llevar',unit:'paquete',min:3},{name:'Pitillos / removedores',unit:'paquete',min:3}]},
+  {cat:'Aseo y limpieza',items:[
+    {name:'Jabón de manos',unit:'unidad',min:2},{name:'Papel higiénico',unit:'paquete',min:3},
+    {name:'Toallas de cocina / paños',unit:'unidad',min:6},{name:'Desinfectante multiusos',unit:'l',min:2},
+    {name:'Jabón lavaplatos',unit:'l',min:2},{name:'Bolsas de basura',unit:'paquete',min:3},{name:'Alcohol / sanitizante',unit:'l',min:1}]},
+  {cat:'Pastelería e insumos',items:[
+    {name:'Harina pastelera',unit:'kg',min:2},
+    {name:'Cocoa',unit:'kg',min:0.5},
+    {name:'Aceite vegetal',unit:'l',min:1},
+    {name:'Levadura',unit:'g',min:50},
+    {name:'Leche en polvo',unit:'g',min:100},
+    {name:'Maicena',unit:'kg',min:0.5},
+    {name:'Vainilla',unit:'ml',min:50},
+    {name:'Café instantáneo',unit:'g',min:50},
+    {name:'Colorante rojo',unit:'g',min:10},
+    {name:'Mayonesa',unit:'kg',min:0.3},
+    {name:'Vinagre',unit:'ml',min:100},
+    {name:'Gelatina sin sabor',unit:'g',min:30},
+    {name:'Azúcar glass',unit:'kg',min:0.5},
+    {name:'Super lemon',unit:'g',min:30},
+    {name:'Glucosa',unit:'g',min:100},
+    {name:'Brillo neutro',unit:'g',min:100},
+    {name:'Polvo para hornear',unit:'g',min:20},
+    {name:'Canela en astilla',unit:'g',min:100},
+    {name:'Clavos',unit:'g',min:50},
+    {name:'Chantilly',unit:'g',min:200},
+    {name:'Leche condensada',unit:'g',min:300},
+    {name:'Malvaviscos',unit:'g',min:100},
+    {name:'Ácido cítrico',unit:'g',min:50},
+    {name:'Panela',unit:'g',min:200},
+    {name:'Almendras laminadas',unit:'g',min:100},
+    {name:'Maracuyá',unit:'kg',min:0.4},
+    {name:'Mango',unit:'kg',min:0.5},
+    {name:'Mora',unit:'kg',min:0.5},
+    {name:'Vinagre balsámico',unit:'ml',min:100},
+    {name:'Perejil',unit:'g',min:100},
+    {name:'Pimentón',unit:'unidad',min:4},
+    {name:'Ajo',unit:'unidad',min:6},
+  ]},
+  {cat:'Decoración',items:[
+    {name:'Servilletas decorativas',unit:'paquete',min:2},{name:'Flores / plantas para mesas',unit:'unidad',min:2},
+    {name:'Velas / aromatizantes',unit:'unidad',min:3},{name:'Manteles / individuales',unit:'unidad',min:6}]},
+];
+
+/* ══════════════════════════════════════════
+   MENÚ DE PRODUCTOS + RECETAS
+══════════════════════════════════════════ */
+const MENU={
+  "Cornetti dulce":[{name:"Cornetti de Fresas",price:0,recipe:[]},{name:"Cornetti de banano",price:0,recipe:[]},{name:"Cornetti de manzana y crema de queso",price:15000,recipe:[]}],
+  "Cornetti sal":[{name:"Cornetti Napolitano",price:15000,recipe:[]},{name:"Cornetti de Tocineta y salsa de queso",price:16000,recipe:[]},{name:"Cornetti de carne en salsa de pimentón",price:16000,recipe:[]},{name:"Cornetti de carnes maduradas",price:16500,recipe:[]},{name:"Cornetti de cerdo y queso cheddar",price:16500,recipe:[]},{name:"Cornetti de pollo al perejil",price:15500,recipe:[]}],
+  "Desayunos":[{name:"Bowl de fruta y linaza",price:16500,recipe:[]},{name:"Caldo de la Casa",price:11500,recipe:[]},{name:"Emparedado de huevo",price:21000,recipe:[]},{name:"Huevos al gusto",price:0,recipe:[]},{name:"Milhoja de Aguacate con Huevo y Tocineta",price:18500,recipe:[]},{name:"Pancakes De Yogurt y Fruta",price:18000,recipe:[]},{name:"Pancakes con miel y fruta",price:16500,recipe:[]},{name:"Parfait de Yogurt, Granola y Fruta",price:17500,recipe:[]}],
+  "Brunch":[{name:"Emparedado 4 quesos",price:19000,recipe:[]},{name:"Focaccia Amatriciana",price:23000,recipe:[]},{name:"Focaccia Capricosa",price:23500,recipe:[]},{name:"Focaccia Napolitana",price:21000,recipe:[]},{name:"Set de panes",price:16500,recipe:[]},{name:"Tostada de aguacate",price:23000,recipe:[]},{name:"Tostada de tocineta y queso",price:25000,recipe:[]}],
+  "Crepes de dulce":[{name:"Crepe Banano y pastelera",price:0,recipe:[]},{name:"Crepe de fresas con pastelera",price:0,recipe:[]},{name:"Crepe de manzana caramelizadas y queso crema",price:0,recipe:[]}],
+  "Crepes de sal":[{name:"Crepe Sessanio",price:0,recipe:[]},{name:"Crepe de carne en salsa de pimentón",price:0,recipe:[]},{name:"Crepe de huevo y tocineta",price:0,recipe:[]},{name:"Crepe evento",price:30000,recipe:[]}],
+  "Bebidas calientes":[{name:"Café Latte 10oz",price:10000,recipe:[]},{name:"Café americano 5oz",price:6000,recipe:[]},{name:"Café americano doble 10oz",price:8000,recipe:[]},{name:"Café con Chai Latte",price:13500,recipe:[]},{name:"Cappuccino",price:9500,recipe:[]},{name:"Carajillo con brandy",price:10500,recipe:[]},{name:"ChocoPop",price:13500,recipe:[]},{name:"Chocolate de la nona",price:12500,recipe:[]},{name:"Chai Latte",price:12500,recipe:[]},{name:"Espresso",price:6000,recipe:[]},{name:"Espresso Bombon",price:7500,recipe:[]},{name:"Flat White",price:9000,recipe:[]},{name:"Infusión herbal",price:5500,recipe:[]},{name:"Latte con amor",price:13000,recipe:[]},{name:"Macchiato",price:7500,recipe:[]},{name:"Matcha ceremonial",price:9000,recipe:[]},{name:"Mocaccino",price:12500,recipe:[]},{name:"Nesquik Caliente",price:11000,recipe:[]},{name:"Tinto de la nona",price:8000,recipe:[]},{name:"Vino caliente",price:15500,recipe:[]}],
+  "Cafés filtrados":[{name:"Café de especialidad 1",price:50000,recipe:[]},{name:"Café de especialidad 2",price:65000,recipe:[]},{name:"Dripper V60 (160 ml)",price:15000,recipe:[]},{name:"Prensa Francesa (250mL)",price:15000,recipe:[]},{name:"Yuro-Press (300 mL)",price:15000,recipe:[]}],
+  "Té en hebra":[{name:"Té Blanco Eterna Juventud",price:0,recipe:[]},{name:"Té Rojo Silueta de Verano",price:0,recipe:[]},{name:"Té matcha bolsa",price:65000,recipe:[]},{name:"Té negro Brownie",price:0,recipe:[]}],
+  "Bebidas frías":[{name:"Agua manantial",price:0,recipe:[]},{name:"Bretaña",price:6500,recipe:[]},{name:"Budweiser",price:10000,recipe:[]},{name:"Cerveza",price:10000,recipe:[]},{name:"Cold Brew",price:8500,recipe:[]},{name:"Frappuccino",price:12500,recipe:[]},{name:"Frappuccino Chai",price:13500,recipe:[]},{name:"Frappuccino con Amaretto",price:14000,recipe:[]},{name:"Ginger Ale",price:6500,recipe:[]},{name:"Heineken",price:10000,recipe:[]},{name:"Jarra de agua",price:3500,recipe:[]},{name:"Jugo natural en agua",price:0,recipe:[]},{name:"Jugo natural en leche",price:0,recipe:[]},{name:"Lassi de Fruta",price:0,recipe:[]},{name:"Latte frío",price:0,recipe:[]},{name:"Limonada",price:0,recipe:[]},{name:"Matcha frío frappeado",price:11000,recipe:[]},{name:"Nesquik frío",price:12500,recipe:[]},{name:"Soda Hatsu",price:6500,recipe:[]},{name:"Soda Italiana",price:0,recipe:[]},{name:"Stella Artois",price:12000,recipe:[]}],
+  "Cocteles":[{name:"Bali Sunset",price:26000,recipe:[]},{name:"Margarita",price:24000,recipe:[]},{name:"Mojito Sessanio",price:25000,recipe:[]},{name:"Piña Colada",price:26000,recipe:[]}],
+  "Postres":[{name:"Alfajor (und)",price:4000,recipe:[]},{name:"Brownie",price:0,recipe:[]},{name:"Cake pop (und)",price:3000,recipe:[]},{name:"Cheesecake Frutos Rojos",price:13500,recipe:[]},{name:"Cheesecake de Pistacho",price:15000,recipe:[]},{name:"Cheesecake de frutos amarillos",price:13500,recipe:[]},{name:"Cheesecake oreo",price:13500,recipe:[]},{name:"Crostata",price:0,recipe:[]},{name:"Crostatina",price:0,recipe:[]},{name:"Cupcake decorado",price:7000,recipe:[]},{name:"Galleta de brownie y almendras",price:6500,recipe:[]},{name:"Galleta de naranja y chocolate",price:6500,recipe:[]},{name:"Macarons (und)",price:0,recipe:[]},{name:"Mini Cake saludable",price:8500,recipe:[]},{name:"Panna Cotta",price:0,recipe:[]},{name:"Pie de limón",price:11500,recipe:[]},{name:"Postre de tiramisú",price:12500,recipe:[]},{name:"TORTA DE BANANO VEGANA",price:7000,recipe:[]},{name:"Torta cappuccino",price:14500,recipe:[]},{name:"Torta de Red Velvet",price:14000,recipe:[]},{name:"Torta de chocolate",price:14500,recipe:[]}],
+  "Postres completos":[{name:"Cheesecake Pistacho Completo",price:120000,recipe:[]},{name:"Cheesecake de Frutos Rojos completo",price:135000,recipe:[]},{name:"Cheesecake horneado completo",price:120000,recipe:[]},{name:"TORTA 6 PERSONAS DISEÑO",price:70000,recipe:[]},{name:"Tiramisú completo",price:150000,recipe:[]},{name:"Torta 4 porciones",price:50000,recipe:[]},{name:"Torta cappuccino completa",price:120000,recipe:[]},{name:"Torta chocolate completa",price:120000,recipe:[]},{name:"Torta grado",price:220000,recipe:[]},{name:"Torta red velvet Completa",price:120000,recipe:[]}],
+  "Almuerzo del día":[{name:"Almuerzo del día",price:18000,recipe:[]},{name:"Almuerzo Ejecutivo",price:22000,recipe:[]},{name:"Bandeja del día",price:17000,recipe:[]}]
+};
+
+/* ══════════════════════════════════════════
+   ESTADO
+══════════════════════════════════════════ */
+const LSK='sessanio_v4_inv';
+const LSC='sessanio_v4_cfg';
+const LSU='sessanio_v4_users';
+const LSV='sessanio_v4_ventas';
+const LSR='sessanio_v4_recipes';
+const LSMOB='sessanio_v4_mob';
+const LSFMT='sessanio_v4_fmt';
+
+let cfg=lsGet(LSC)||{};
+let inv={};         // inventario materia prima
+let ventas=[];      // historial ventas
+let users={};       // usuarios
+let sesion=null;    // usuario logueado
+let cart={};        // {nombre:{qty,price}}
+let recipes={};     // {nombre_producto:{ingredientes:[{ing,qty,unit}]}}
+let fireApp=null,fireDb=null,fireRef=null,fireUsersRef=null,fireVentasRef=null,fireRecRef=null,fireMobRef=null,fireFmtRef=null;
+let mobiliario={};
+let formatos=[];
+let collapsed={};
+let searchQ='';
+
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+/* ══════════════════════════════════════════
+   USUARIOS (localStorage + Firebase)
+══════════════════════════════════════════ */
+function loadUsers(){
+  const saved=lsGet(LSU);
+  if(saved&&Object.keys(saved).length>0){users=saved;return;}
+  // Usuarios por defecto
+  users={
+    admin:{nombre:'Administrador',rol:'admin',pass:'admin123'},
+    cocina:{nombre:'Cocina Sessanio',rol:'cocina',pass:'cocina123'},
+    caja:{nombre:'Caja Sessanio',rol:'caja',pass:'caja123'},
+  };
+  lsSet(LSU,users);
+}
+function saveUsers(){lsSet(LSU,users);if(fireUsersRef)fireUsersRef.set(users);}
+
+/* ══════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════ */
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim().toLowerCase();
+  const p=document.getElementById('loginPass').value;
+  if(!users[u]){document.getElementById('loginErr').textContent='Usuario no encontrado.';return;}
+  if(users[u].pass!==p){document.getElementById('loginErr').textContent='Contraseña incorrecta.';return;}
+  sesion={username:u,...users[u]};
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  initApp();
+}
+document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus();});
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+/* ══════════════════════════════════════════
+   INIT APP
+══════════════════════════════════════════ */
+function initApp(){
+  document.getElementById('rolBadge').textContent=
+    sesion.rol==='admin'?'👑 Admin':sesion.rol==='cocina'?'🍳 Cocina':'💰 Caja';
+  inv=lsGet(LSK)||initInv();
+  ventas=lsGet(LSV)||[];
+  recipes=lsGet(LSR)||{};
+  mobiliario=lsGet(LSMOB)||initMob();
+  formatos=lsGet(LSFMT)||[];
+  // Si el inventario existe pero no tiene categorías del catálogo, reinicializar
+  const invCats=Object.keys(inv);
+  if(invCats.length===0||(CATALOG&&CATALOG.length>invCats.length)){
+    const fresh=initInv();
+    // Preservar cantidades existentes
+    Object.keys(inv).forEach(cat=>{
+      if(fresh[cat])Object.keys(inv[cat]).forEach(name=>{
+        if(fresh[cat][name])fresh[cat][name].qty=inv[cat][name].qty||0;
+      });
+    });
+    inv=fresh;
+    lsSet(LSK,inv);
+  }
+  // Si no hay recetas guardadas, cargar las precargadas
+  if(!Object.keys(recipes).length) recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  buildNav();
+  buildTabs();
+  if(cfg.fbUrl&&cfg.fbKey){
+    updateSync('yellow','Conectando...');
+    initFirebase().catch(()=>updateSync('','offline'));
+  } else {
+    updateSync('','offline');
+    document.getElementById('fbUrl').value=cfg.fbUrl||'';
+    document.getElementById('fbKey').value=cfg.fbKey||'';
+  }
+  setScreen(sesion.rol==='caja'?'pos':sesion.rol==='cocina'?'inv':'inv');
+}
+
+function initInv(){
+  const o={};
+  CATALOG.forEach(c=>{
+    o[c.cat]={};
+    c.items.forEach(it=>{const INIT_STOCK={"Leche entera": 2.0, "Leche de almendras": 1.0, "Queso crema": 0.5, "Crema de leche / agria": 0.2, "Leche en polvo": 0.05, "Harina de trigo": 1.0, "Azúcar": 1.0, "Limón": 0.4, "Naranja": 0.1, "Café en grano": 1.25, "Chai concentrado": 1.3, "Chocolate de mesa": 0.3, "Arequipe": 0.05};o[c.cat][it.name]={qty:INIT_STOCK[it.name]!==undefined?INIT_STOCK[it.name]:0,min:it.min,unit:it.unit,maxO:it.min*3};});
+  });
+  return o;
+}
+
+/* ══════════════════════════════════════════
+   NAV & TABS POR ROL
+══════════════════════════════════════════ */
+const SCREENS={
+  inv:{label:'Inventario',ic:'📦',roles:['admin','cocina']},
+  menu:{label:'Productos',ic:'🧾',roles:['admin']},
+  rec:{label:'Recetas',ic:'📋',roles:['admin']},
+  pos:{label:'Ventas',ic:'💰',roles:['admin','caja']},
+  alertas:{label:'Alertas',ic:'🔔',roles:['admin','cocina','caja']},
+  rep:{label:'Reportes',ic:'📊',roles:['admin']},
+  users:{label:'Usuarios',ic:'👥',roles:['admin']},
+  fmt:{label:'Formatos',ic:'📄',roles:['admin','caja','cocina']},
+  mob:{label:'Activos',ic:'🍳',roles:['admin']},
+};
+
+function buildNav(){
+  const nav=document.getElementById('mainNav');
+  nav.innerHTML=Object.entries(SCREENS)
+    .filter(([,s])=>s.roles.includes(sesion.rol))
+    .map(([id,s])=>`<button class="nb" onclick="setScreen('${id}')"><span class="ic">${s.ic}</span>${s.label}</button>`)
+    .join('');
+}
+function buildTabs(){} // nav IS the tab system on mobile
+
+/* ══════════════════════════════════════════
+   NAVEGACIÓN
+══════════════════════════════════════════ */
+let curScreen='';
+function setScreen(s){
+  if(!SCREENS[s]||!SCREENS[s].roles.includes(sesion.rol))return;
+  curScreen=s;
+  document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>{if(b.getAttribute('onclick')===`setScreen('${s}')`)b.classList.add('active');});
+  document.getElementById('mainToolbar').style.display=(s==='inv'||s==='menu'||s==='rec'||s==='mob')?'flex':'none';
+  document.getElementById('fabCart').style.display=s==='pos'?'flex':'none';
+  if(s==='inv')renderInv();
+  if(s==='menu')renderMenu();
+  if(s==='rec')renderRecetas();
+  if(s==='pos')renderPOS();
+  if(s==='alertas')renderAlertas();
+  if(s==='rep')renderRep();
+  if(s==='users')renderUsers();
+  if(s==='fmt')renderFormatos();
+  if(s==='mob')renderMobiliario();
+}
+
+/* ══════════════════════════════════════════
+   INVENTARIO MATERIA PRIMA
+══════════════════════════════════════════ */
+function renderInv(){
+  const term=searchQ.toLowerCase();
+  let html='';
+  CATALOG.forEach(cat=>{
+    const cd=inv[cat.cat]||{};
+    const items=Object.entries(cd).filter(([n,v])=>v&&(!term||n.toLowerCase().includes(term)));
+    if(!items.length&&term)return;
+    const lowN=items.filter(([,v])=>v.qty<=v.min).length;
+    const coll=collapsed[cat.cat];
+    html+=`<div class="cat-sec">
+      <div class="cat-head" onclick="toggleCat('${ej(cat.cat)}')">
+        <span class="cn">${cat.cat}</span>
+        <span class="cm">${lowN>0?`<span style="color:var(--rojo)">⚠️${lowN} bajo · </span>`:''} ${items.length} prod ${coll?'▶':'▼'}</span>
+      </div>`;
+    if(!coll){
+      html+=`<div class="cat-body">
+        <div class="item-header"><div>Producto</div><div>Ud.</div><div style="text-align:center">Actual</div><div style="text-align:center">Mín</div><div>Stock</div><div></div></div>`;
+      items.forEach(([name,v])=>{
+        const pct=v.maxO?Math.min(100,v.qty/v.maxO*100):v.min>0?Math.min(100,v.qty/v.min*100):100;
+        const isLow=v.qty<=v.min,isCrit=v.qty===0;
+        const bc=isCrit?'var(--rojo)':isLow?'var(--amarillo)':'var(--menta-dark)';
+        const rc=isCrit?'crit':isLow?'low':'';
+        const qc=isCrit?'crit':isLow?'low':'';
+        const canEdit=sesion.rol==='admin'||sesion.rol==='cocina';
+        html+=`<div class="item-row ${rc}">
+          <div class="iname">${name}<span class="unit-lbl">${v.unit}</span></div>
+          <div style="font-size:.68rem;color:var(--muted);text-align:center">${v.unit}</div>
+          <div>${canEdit?`<input class="qty-inp ${qc}" type="number" min="0" step="0.5" value="${v.qty||0}" data-cat="${ea(cat.cat)}" data-name="${ea(name)}" onchange="updQty(this)" oninput="updQty(this)">`:`<strong>${v.qty||0}</strong>`}</div>
+          <div style="text-align:center;font-size:.8rem;color:var(--muted)">${v.min}</div>
+          <div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(0)}%;background:${bc}"></div></div><div class="bar-lbl">${pct.toFixed(0)}%</div></div>
+          <div>${sesion.rol==='admin'?`<button class="del-btn" onclick="delItem('${ej(cat.cat)}','${ej(name)}')">✕</button>`:''}</div>
+        </div>`;
+      });
+      if(sesion.rol==='admin'||sesion.rol==='cocina'){
+        html+=`<div class="add-row">
+          <input name="nn" placeholder="Nuevo producto...">
+          <select name="nu">${['kg','l','unidad','paquete','botella','caja'].map(u=>`<option>${u}</option>`).join('')}</select>
+          <input name="nm" type="number" placeholder="Mín" style="width:50px" min="0">
+          <button class="btn btn-dorado btn-sm" onclick="addItem('${ej(cat.cat)}',this)">+ Add</button>
+        </div>`;
+      }
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+  document.getElementById('invContainer').innerHTML=html;
+}
+
+function toggleCat(cat){collapsed[cat]=!collapsed[cat];renderInv();}
+
+function updQty(inp){
+  const cat=inp.dataset.cat,name=inp.dataset.name;
+  const val=parseFloat(inp.value)||0;
+  if(!inv[cat])inv[cat]={};
+  if(!inv[cat][name])inv[cat][name]={};
+  inv[cat][name].qty=val;
+  inv[cat][name]._by=sesion.username;
+  inv[cat][name]._ts=Date.now();
+  updateAlertBanner();
+  clearTimeout(inp._t);
+  inp._t=setTimeout(()=>{pushInv();renderInv();},900);
+}
+
+function delItem(cat,name){
+  if(!confirm(`¿Eliminar "${name}"?`))return;
+  delete inv[cat][name];
+  pushInv();renderInv();
+}
+
+function addItem(cat,btn){
+  const row=btn.parentElement;
+  const name=row.querySelector('[name=nn]').value.trim();
+  const unit=row.querySelector('[name=nu]').value;
+  const min=parseInt(row.querySelector('[name=nm]').value)||1;
+  if(!name){toast('Escribe el nombre del producto','var(--rojo)');return;}
+  if(!inv[cat])inv[cat]={};
+  inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion.username,_ts:Date.now()};
+  pushInv();renderInv();toast(`✅ "${name}" agregado`);
+}
+
+/* ══════════════════════════════════════════
+   INVENTARIO MENÚ / PRODUCTOS A LA VENTA
+══════════════════════════════════════════ */
+function renderMenu(){
+  let html='';
+  Object.entries(MENU).forEach(([cat,items])=>{
+    html+=`<div class="cat-sec">
+      <div class="cat-head"><span class="cn">${cat}</span><span class="cm">${items.length} productos</span></div>
+      <div class="cat-body">
+        <div class="item-header" style="grid-template-columns:1fr 70px 50px"><div>Producto</div><div style="text-align:center">Precio</div><div style="text-align:center">Stock est.</div></div>`;
+    items.forEach(p=>{
+      // calcula porciones posibles según inventario actual
+      let maxPorciones=999;
+      p.recipe.forEach(([ing,qty])=>{
+        CATALOG.forEach(c=>{if(inv[c.cat]&&inv[c.cat][ing]!==undefined){
+          const avail=(inv[c.cat][ing].qty||0);
+          if(qty>0)maxPorciones=Math.min(maxPorciones,Math.floor(avail/qty));
+        }});
+      });
+      if(maxPorciones===999)maxPorciones='—';
+      const low=typeof maxPorciones==='number'&&maxPorciones<=3;
+      html+=`<div class="item-row ${low?'low':''}" style="grid-template-columns:1fr 70px 50px">
+        <div class="iname">${p.name}</div>
+        <div style="text-align:center;font-size:.82rem;color:var(--menta-deep);font-weight:700">${p.price>0?fmtCOP(p.price):'Variable'}</div>
+        <div style="text-align:center;font-size:.82rem;font-weight:700;color:${low?'var(--rojo)':'var(--menta-deep)'}">${maxPorciones}</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('menuContainer').innerHTML=html;
+}
+
+
+/* ══════════════════════════════════════════
+   RECETAS — ADMIN DEFINE INGREDIENTES
+══════════════════════════════════════════ */
+function pushRecipes(){
+  lsSet(LSR,recipes);
+  if(fireRecRef)fireRecRef.set(sanitizeForFb(recipes)).catch(()=>{});
+}
+
+function renderRecetas(){
+  const term=searchQ.toLowerCase();
+  let html='';
+  Object.entries(MENU).forEach(([cat,items])=>{
+    const filtered=items.filter(p=>!term||p.name.toLowerCase().includes(term));
+    if(!filtered.length)return;
+    html+=`<div class="cat-sec">
+      <div class="cat-head"><span class="cn">${cat}</span><span class="cm">${filtered.length} productos</span></div>
+      <div class="cat-body">`;
+    filtered.forEach(p=>{
+      const rec=recipes[p.name];
+      const ings=rec&&rec.ingredientes?rec.ingredientes:[];
+      const hasRec=ings.length>0;
+      html+=`<div style="padding:10px 12px;border-bottom:1px solid var(--menta);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div>
+            <span style="font-weight:600;font-size:.85rem;">${p.name}</span>
+            <span style="font-size:.68rem;color:var(--muted);margin-left:6px;">${fmtCOP(p.price)}</span>
+          </div>
+          <button class="btn btn-dorado btn-sm" onclick="openRecModal('${ej(p.name)}')">✏️ Editar</button>
+        </div>`;
+      if(hasRec){
+        html+=`<div style="display:flex;flex-wrap:wrap;gap:5px;">`;
+        ings.forEach(r=>{
+          html+=`<span style="background:var(--menta2);border:1px solid var(--linea);border-radius:6px;padding:3px 8px;font-size:.72rem;color:var(--menta-deep);">${r.qty} ${r.unit} ${r.ing}</span>`;
+        });
+        html+=`</div>`;
+      } else {
+        html+=`<div style="font-size:.74rem;color:var(--rojo);font-style:italic;">⚠️ Sin receta — no descuenta inventario al vender</div>`;
+      }
+      html+=`</div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('recContainer').innerHTML=html||'<div style="text-align:center;padding:30px;color:var(--muted);">Sin resultados</div>';
+}
+
+/* ── MODAL EDITAR RECETA ── */
+let editingRecipe=null; // nombre del producto en edición
+
+function openRecModal(nombre){
+  editingRecipe=nombre;
+  const rec=recipes[nombre]||{ingredientes:[]};
+  document.getElementById('recModalTitle').textContent=nombre;
+  renderRecLines(rec.ingredientes||[]);
+  document.getElementById('recModal').classList.add('open');
+}
+function closeRecModal(){document.getElementById('recModal').classList.remove('open');editingRecipe=null;}
+
+function renderRecLines(ings){
+  const cont=document.getElementById('recLines');
+  // Get all ingredient names from catalog
+  const allIngs=[];
+  CATALOG.forEach(c=>Object.keys(inv[c.cat]||{}).forEach(n=>{if(!allIngs.includes(n))allIngs.push(n);}));
+  // fallback to catalog default names
+  CATALOG.forEach(c=>c.items.forEach(it=>{if(!allIngs.includes(it.name))allIngs.push(it.name);}));
+
+  cont.innerHTML=ings.map((r,i)=>`
+    <div class="rec-line" data-i="${i}" style="display:grid;grid-template-columns:1fr 60px 70px 28px;gap:6px;align-items:center;margin-bottom:6px;">
+      <select class="rl-ing" onchange="updRecLine(${i},'ing',this.value)" style="border:1.5px solid var(--linea);border-radius:6px;padding:6px 8px;font-size:.78rem;color:var(--texto);">
+        ${allIngs.map(n=>`<option value="${n}" ${n===r.ing?'selected':''}>${n}</option>`).join('')}
+      </select>
+      <input class="rl-qty" type="number" min="0" step="0.01" value="${r.qty||0}" onchange="updRecLine(${i},'qty',this.value)" style="border:1.5px solid var(--linea);border-radius:6px;padding:6px 4px;text-align:center;font-size:.82rem;">
+      <select class="rl-unit" onchange="updRecLine(${i},'unit',this.value)" style="border:1.5px solid var(--linea);border-radius:6px;padding:6px 4px;font-size:.78rem;">
+        ${['kg','l','unidad','paquete','botella','g','ml'].map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
+      </select>
+      <button onclick="removeRecLine(${i})" style="background:none;border:none;color:var(--rojo);font-size:1rem;cursor:pointer;">✕</button>
+    </div>`).join('');
+  if(!ings.length) cont.innerHTML='<div style="font-size:.78rem;color:var(--muted);padding:8px 0;">Sin ingredientes. Toca "+ Agregar ingrediente".</div>';
+}
+
+function updRecLine(i,field,val){
+  if(!editingRecipe)return;
+  if(!recipes[editingRecipe])recipes[editingRecipe]={ingredientes:[]};
+  recipes[editingRecipe].ingredientes[i][field]=val;
+}
+
+function addRecLine(){
+  if(!editingRecipe)return;
+  if(!recipes[editingRecipe])recipes[editingRecipe]={ingredientes:[]};
+  const allIngs=[];
+  CATALOG.forEach(c=>c.items.forEach(it=>{if(!allIngs.includes(it.name))allIngs.push(it.name);}));
+  recipes[editingRecipe].ingredientes.push({ing:allIngs[0]||'',qty:0,unit:'kg'});
+  renderRecLines(recipes[editingRecipe].ingredientes);
+}
+
+function removeRecLine(i){
+  if(!editingRecipe||!recipes[editingRecipe])return;
+  recipes[editingRecipe].ingredientes.splice(i,1);
+  renderRecLines(recipes[editingRecipe].ingredientes);
+}
+
+function saveReceta(){
+  if(!editingRecipe)return;
+  // Re-read values from DOM in case user typed without triggering onchange
+  const lines=document.querySelectorAll('#recLines .rec-line');
+  if(!recipes[editingRecipe])recipes[editingRecipe]={ingredientes:[]};
+  recipes[editingRecipe].ingredientes=Array.from(lines).map(l=>({
+    ing:l.querySelector('.rl-ing').value,
+    qty:parseFloat(l.querySelector('.rl-qty').value)||0,
+    unit:l.querySelector('.rl-unit').value,
+  })).filter(r=>r.ing&&r.qty>0);
+  pushRecipes();
+  closeRecModal();
+  renderRecetas();
+  toast(`✅ Receta de "${editingRecipe}" guardada`);
+}
+
+/* ══════════════════════════════════════════
+   POS — PUNTO DE VENTA
+══════════════════════════════════════════ */
+function renderPOS(){
+  let html='';
+  Object.entries(MENU).forEach(([cat,items])=>{
+    html+=`<div class="pos-cat-title">${cat}</div>`;
+    html+=`<div class="pos-grid">`;
+    items.forEach(p=>{
+      const inCart=cart[p.name]?.qty>0;
+      html+=`<div class="pos-item ${inCart?'added':''}" onclick="addToCart('${ej(p.name)}')">
+        <div class="pname">${p.name}</div>
+        <div class="pprice">${p.price>0?fmtCOP(p.price):'Precio variable'}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  document.getElementById('posGrid').innerHTML=html;
+  renderCart();
+}
+
+function addToCart(name){
+  let prod=null;
+  Object.values(MENU).forEach(items=>items.forEach(p=>{if(p.name===name)prod=p;}));
+  if(!prod)return;
+  if(!cart[name])cart[name]={qty:0,price:prod.price};
+  cart[name].qty++;
+  renderCart();
+  renderPOS();
+  updateFab();
+}
+
+function changeCart(name,delta){
+  if(!cart[name])return;
+  cart[name].qty+=delta;
+  if(cart[name].qty<=0)delete cart[name];
+  renderCart();
+  renderPOS();
+  updateFab();
+}
+
+function renderCart(){
+  const items=Object.entries(cart);
+  const body=document.getElementById('cartBody');
+  if(!items.length){
+    body.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:.8rem;">Sin productos aún</div>';
+    document.getElementById('cartTotal').textContent='Total: $0';
+    return;
+  }
+  body.innerHTML=items.map(([name,d])=>`
+    <div class="cart-row">
+      <div style="font-size:.82rem;font-weight:500">${name}</div>
+      <div class="cart-qty">
+        <button class="qty-btn" onclick="changeCart('${ej(name)}',-1)">−</button>
+        <span style="font-size:.85rem;font-weight:700">${d.qty}</span>
+        <button class="qty-btn" onclick="changeCart('${ej(name)}',1)">+</button>
+      </div>
+      <div style="font-size:.8rem;font-weight:700;color:var(--menta-deep)">${fmtCOP(d.price*d.qty)}</div>
+    </div>`).join('');
+  const total=items.reduce((s,[,d])=>s+d.price*d.qty,0);
+  document.getElementById('cartTotal').innerHTML=`Total: <strong>${fmtCOP(total)}</strong>`;
+}
+
+function updateFab(){
+  const n=Object.values(cart).reduce((s,d)=>s+d.qty,0);
+  document.getElementById('fabBadge').textContent=n;
+  document.getElementById('fabBadge').style.display=n>0?'flex':'none';
+}
+
+function toggleCart(){
+  document.getElementById('cartPanel').classList.toggle('open');
+}
+
+function cobrar(){
+  const items=Object.entries(cart);
+  if(!items.length){toast('Agrega productos al pedido','var(--rojo)');return;}
+  const total=items.reduce((s,[,d])=>s+d.price*d.qty,0);
+  // Descontar ingredientes según recetas editables
+  const alerts=[];
+  items.forEach(([name,d])=>{
+    const rec=recipes[name];
+    if(!rec||!rec.ingredientes||!rec.ingredientes.length){
+      // sin receta: no descuenta, avisa en reporte
+      return;
+    }
+    rec.ingredientes.forEach(r=>{
+      const needed=parseFloat(r.qty)*d.qty;
+      if(!needed)return;
+      CATALOG.forEach(c=>{
+        if(inv[c.cat]&&inv[c.cat][r.ing]!==undefined){
+          inv[c.cat][r.ing].qty=Math.max(0,(inv[c.cat][r.ing].qty||0)-needed);
+          inv[c.cat][r.ing]._by=sesion.username;
+          inv[c.cat][r.ing]._ts=Date.now();
+          if(inv[c.cat][r.ing].qty<=inv[c.cat][r.ing].min){
+            alerts.push(`⚠️ ${r.ing}: stock bajo`);
+          }
+        }
+      });
+    });
+  });
+  // Guardar venta
+  const venta={
+    id:'v'+Date.now(),ts:Date.now(),
+    items:items.map(([name,d])=>({name,qty:d.qty,price:d.price})),
+    total,caja:sesion.username
+  };
+  ventas.unshift(venta);
+  if(ventas.length>500)ventas=ventas.slice(0,500);
+  lsSet(LSV,ventas);
+  if(fireVentasRef)fireVentasRef.child(venta.id).set(venta);
+  cart={};
+  pushInv();updateAlertBanner();
+  updateFab();
+  renderCart();renderPOS();
+  document.getElementById('cartPanel').classList.remove('open');
+  toast(`✅ Venta registrada · ${fmtCOP(total)}`);
+  if(alerts.length)setTimeout(()=>toast(alerts.slice(0,2).join(' · '),'var(--amarillo)'),1500);
+}
+
+/* ══════════════════════════════════════════
+   ALERTAS
+══════════════════════════════════════════ */
+function renderAlertas(){
+  const low=[];
+  CATALOG.forEach(c=>{
+    const cd=inv[c.cat]||{};
+    Object.entries(cd).forEach(([name,v])=>{if(v.qty<=v.min)low.push({cat:c.cat,name,v});});
+  });
+  low.sort((a,b)=>(a.v.qty/Math.max(a.v.min,1))-(b.v.qty/Math.max(b.v.min,1)));
+  const cont=document.getElementById('alertasContainer');
+  if(!low.length){
+    cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">✅ Todo sobre el mínimo</div>';
+    return;
+  }
+  cont.innerHTML=low.map(({cat,name,v})=>{
+    const crit=v.qty===0;
+    const pct=v.min>0?Math.round(v.qty/v.min*100):0;
+    const by=v._by?` · Últ. edición: ${v._by}`:'';
+    return `<div class="alerta-card ${crit?'':'warn'}">
+      <div class="an">${name} ${crit?'🚨 AGOTADO':''}</div>
+      <div class="ai">${cat} · Tiene: ${v.qty} ${v.unit} · Mín: ${v.min} · ${crit?'AGOTADO':pct+'% del mínimo'}${by}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateAlertBanner(){
+  let n=0;
+  CATALOG.forEach(c=>{const cd=inv[c.cat]||{};Object.values(cd).forEach(v=>{if(v.qty<=v.min)n++;});});
+  const b=document.getElementById('alertBanner');
+  document.getElementById('alertCnt').textContent=n;
+  b.classList.toggle('show',n>0);
+}
+
+/* ══════════════════════════════════════════
+   REPORTES (ADMIN)
+══════════════════════════════════════════ */
+function renderRep(){
+  const hoy=new Date().toDateString();
+  const ventasHoy=ventas.filter(v=>new Date(v.ts).toDateString()===hoy);
+  const totalHoy=ventasHoy.reduce((s,v)=>s+v.total,0);
+  const totalSemana=ventas.filter(v=>Date.now()-v.ts<7*864e5).reduce((s,v)=>s+v.total,0);
+  // Producto más vendido
+  const conteo={};
+  ventas.slice(0,200).forEach(v=>v.items.forEach(it=>{conteo[it.name]=(conteo[it.name]||0)+it.qty;}));
+  const top=Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  let html=`<div class="stat-grid">
+    <div class="stat-card"><div class="sv">${ventasHoy.length}</div><div class="sl">Ventas hoy</div></div>
+    <div class="stat-card"><div class="sv">${fmtCOP(totalHoy)}</div><div class="sl">Total hoy</div></div>
+    <div class="stat-card"><div class="sv">${ventas.length}</div><div class="sl">Ventas totales</div></div>
+    <div class="stat-card"><div class="sv">${fmtCOP(totalSemana)}</div><div class="sl">Esta semana</div></div>
+  </div>`;
+  if(top.length){
+    html+=`<div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;margin-bottom:10px;">Top productos</div>`;
+    html+=top.map(([n,q],i)=>`<div class="alerta-card warn" style="border-color:var(--dorado)"><div class="an">${['🥇','🥈','🥉'][i]} ${n}</div><div class="ai">${q} unidades vendidas</div></div>`).join('');
+  }
+  html+=`<div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;margin:14px 0 10px;">Últimas ventas</div>`;
+  if(!ventas.length){html+='<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px;">Sin ventas registradas aún</div>';}
+  else{
+    html+=`<div style="background:#fff;border:1px solid var(--linea);border-radius:var(--radius);overflow:hidden;">
+      <div class="venta-row head"><div>Productos</div><div>Total</div><div>Hora</div><div>Caja</div></div>`;
+    html+=ventas.slice(0,30).map(v=>`
+      <div class="venta-row">
+        <div style="font-size:.76rem">${v.items.map(i=>`${i.qty}×${i.name.split(' ')[0]}`).join(', ')}</div>
+        <div style="font-weight:700;color:var(--menta-deep)">${fmtCOP(v.total)}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${new Date(v.ts).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div style="font-size:.7rem;color:var(--muted)">${v.caja}</div>
+      </div>`).join('');
+    html+=`</div>`;
+  }
+  document.getElementById('repContainer').innerHTML=html;
+}
+
+/* ══════════════════════════════════════════
+   USUARIOS (ADMIN)
+══════════════════════════════════════════ */
+function renderUsers(){
+  const cont=document.getElementById('userList');
+  cont.innerHTML=Object.entries(users).map(([u,d])=>`
+    <div class="user-card">
+      <div class="user-avatar">${d.nombre[0].toUpperCase()}</div>
+      <div class="user-info">
+        <div class="un">${d.nombre}</div>
+        <div class="ur">@${u} · ${d.rol==='admin'?'👑 Admin':d.rol==='cocina'?'🍳 Cocina':'💰 Caja'}</div>
+      </div>
+      ${u!=='admin'?`<button class="user-del" onclick="delUser('${ej(u)}')">Eliminar</button>`:''}
+    </div>`).join('');
+}
+
+function openUserModal(){document.getElementById('userModal').classList.add('open');}
+function closeUserModal(){document.getElementById('userModal').classList.remove('open');}
+
+function crearUsuario(){
+  const nom=document.getElementById('nuNombre').value.trim();
+  const usr=document.getElementById('nuUser').value.trim().toLowerCase().replace(/\s/g,'');
+  const pas=document.getElementById('nuPass').value;
+  const rol=document.getElementById('nuRol').value;
+  if(!nom||!usr||!pas){toast('Completa todos los campos','var(--rojo)');return;}
+  if(pas.length<6){toast('La contraseña debe tener al menos 6 caracteres','var(--rojo)');return;}
+  if(users[usr]){toast('Ese nombre de usuario ya existe','var(--rojo)');return;}
+  users[usr]={nombre:nom,rol,pass:pas};
+  saveUsers();renderUsers();closeUserModal();
+  toast(`✅ Usuario @${usr} creado`);
+  document.getElementById('nuNombre').value='';
+  document.getElementById('nuUser').value='';
+  document.getElementById('nuPass').value='';
+}
+
+function delUser(u){
+  if(u==='admin'){toast('No puedes eliminar el admin principal','var(--rojo)');return;}
+  if(!confirm(`¿Eliminar usuario @${u}?`))return;
+  delete users[u];saveUsers();renderUsers();toast(`Usuario @${u} eliminado`);
+}
+
+/* ══════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════ */
+async function connectFb(){
+  const url=document.getElementById('fbUrl').value.trim();
+  const key=document.getElementById('fbKey').value.trim();
+  if(!url||!key){toast('Ingresa la URL y API Key','var(--rojo)');return;}
+  cfg.fbUrl=url;cfg.fbKey=key;lsSet(LSC,cfg);
+  await initFirebase();
+}
+
+async function initFirebase(){
+  if(!cfg.fbUrl||!cfg.fbKey)return;
+  try{
+    if(fireApp)fireApp.delete();
+    fireApp=firebase.initializeApp({apiKey:cfg.fbKey,databaseURL:cfg.fbUrl},'sess-'+Date.now());
+    fireDb=firebase.database(fireApp);
+    fireRef=fireDb.ref('inventario');
+    fireUsersRef=fireDb.ref('users');
+    fireVentasRef=fireDb.ref('ventas');
+    fireRecRef=fireDb.ref('recipes');
+    fireMobRef=fireDb.ref('mobiliario');
+    fireFmtRef=fireDb.ref('formatos');
+
+    // Sync inventario
+    const snap=await fireRef.once('value');
+    if(!snap.exists())await fireRef.set(sanitizeForFb(inv));
+    else{
+      const raw=snap.val();
+      const refInv=initInv();
+      inv=restoreFromFb(raw,refInv)||raw;
+      lsSet(LSK,inv);
+    }
+
+    // Sync users
+    const usnap=await fireUsersRef.once('value');
+    if(!usnap.exists())await fireUsersRef.set(users);
+    else{users=usnap.val();lsSet(LSU,users);}
+
+    // Sync mobiliario
+    const msnap=await fireMobRef.once('value');
+    if(msnap.exists()){mobiliario=msnap.val();lsSet(LSMOB,mobiliario);}
+    else await fireMobRef.set(mobiliario);
+    fireMobRef.on('value',s=>{if(s.exists()){mobiliario=s.val();lsSet(LSMOB,mobiliario);if(curScreen==='mob')renderMobiliario();}});
+    // Sync formatos
+    const fsnap=await fireFmtRef.once('value');
+    if(fsnap.exists()){formatos=Object.values(fsnap.val());lsSet(LSFMT,formatos);}
+    fireFmtRef.on('value',s=>{if(s.exists()){formatos=Object.values(s.val());lsSet(LSFMT,formatos);if(curScreen==='fmt')renderFormatos();}});
+    // Sync recipes
+    const rsnap=await fireRecRef.once('value');
+    if(rsnap.exists()){recipes=rsnap.val();lsSet(LSR,recipes);}
+    fireRecRef.on('value',s=>{if(s.exists()){recipes=s.val();lsSet(LSR,recipes);if(curScreen==='rec')renderRecetas();}});
+
+    // Real-time listeners
+    fireRef.on('value',s=>{
+      if(!s.exists())return;
+      const raw=s.val();
+      // Restaurar keys con caracteres especiales usando el catálogo como referencia
+      const refInv=initInv();
+      inv=restoreFromFb(raw,refInv)||raw;
+      lsSet(LSK,inv);
+      if(curScreen==='inv')renderInv();
+      if(curScreen==='menu')renderMenu();
+      if(curScreen==='alertas')renderAlertas();
+      updateAlertBanner();
+      updateSync('green',`Sync · ${new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}`);
+    });
+    fireUsersRef.on('value',s=>{if(s.exists()){users=s.val();lsSet(LSU,users);}});
+    fireVentasRef.orderByChild('ts').limitToLast(200).on('value',s=>{
+      if(!s.exists())return;
+      const obj=s.val();
+      ventas=Object.values(obj).sort((a,b)=>b.ts-a.ts);
+      lsSet(LSV,ventas);
+    });
+
+    updateSync('green','Conectado');
+    showFbOk();
+    closeFbModal();
+    toast('✅ Firebase conectado');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    updateSync('','Error');
+    toast('❌ Error Firebase: '+err.message,'var(--rojo)');
+  }
+}
+
+function sanitizeForFb(obj){
+  if(Array.isArray(obj)){
+    // Convert arrays to objects with index keys
+    const r={};
+    obj.forEach((v,i)=>r['i'+i]=sanitizeForFb(v));
+    return r;
+  }
+  if(typeof obj!=='object'||obj===null)return obj;
+  const clean={};
+  Object.keys(obj).forEach(k=>{
+    const sk=fbKey(k);
+    clean[sk]=sanitizeForFb(obj[k]);
+  });
+  return clean;
+}
+function restoreFromFb(obj,ref){
+  // Restore sanitized keys back using catalog as reference
+  if(!obj)return obj;
+  const result={};
+  Object.keys(ref).forEach(cat=>{
+    const catKey=cat.replace(/[.#$/\[\]]/g,'_');
+    if(obj[catKey]){
+      result[cat]={};
+      Object.keys(ref[cat]).forEach(item=>{
+        const itemKey=item.replace(/[.#$/\[\]]/g,'_');
+        if(obj[catKey][itemKey])result[cat][item]=obj[catKey][itemKey];
+        else result[cat][item]=ref[cat][item];
+      });
+    }
+  });
+  return result;
+}
+function pushInv(){
+  lsSet(LSK,inv);
+  if(fireRef){
+    const clean=sanitizeForFb(inv);
+    fireRef.set(clean).catch(e=>console.error('Firebase push error:',e));
+  }
+}
+
+async function syncNow(){
+  if(!fireRef){toast('Sin Firebase. Datos guardados localmente.');return;}
+  toast('↑↓ Sincronizando...');
+  const s=await fireRef.once('value');
+  if(s.exists()){inv=s.val();lsSet(LSK,inv);renderAll();}
+  toast('✅ Sincronizado');
+}
+
+function usarOffline(){cfg.fbUrl='';cfg.fbKey='';lsSet(LSC,cfg);updateSync('yellow','Offline');closeFbModal();toast('📱 Modo offline activo');}
+
+function disconnFb(){
+  if(fireRef)fireRef.off();
+  if(fireApp)try{fireApp.delete();}catch(e){}
+  fireApp=fireDb=fireRef=fireUsersRef=fireVentasRef=null;
+  cfg.fbUrl='';cfg.fbKey='';lsSet(LSC,cfg);
+  document.getElementById('fbFormArea').style.display='block';
+  document.getElementById('fbOkArea').style.display='none';
+  updateSync('','offline');toast('🔌 Desconectado');
+}
+
+function showFbOk(){
+  document.getElementById('fbFormArea').style.display='none';
+  document.getElementById('fbOkArea').style.display='block';
+  document.getElementById('fbUrlLbl').textContent=cfg.fbUrl;
+}
+
+function updateSync(s,lbl){
+  const dot=document.getElementById('syncDot');
+  dot.className='sync-dot'+(s?' '+s:'');
+  document.getElementById('syncLbl').textContent=lbl;
+}
+
+function openFbModal(){
+  document.getElementById('fbUrl').value=cfg.fbUrl||'';
+  document.getElementById('fbKey').value=cfg.fbKey||'';
+  if(cfg.fbUrl)showFbOk();
+  document.getElementById('fbModal').classList.add('open');
+}
+function closeFbModal(){document.getElementById('fbModal').classList.remove('open');}
+
+/* ══════════════════════════════════════════
+   UTILIDADES
+══════════════════════════════════════════ */
+function renderAll(){
+  updateAlertBanner();
+  if(curScreen==='inv')renderInv();
+  if(curScreen==='menu')renderMenu();
+  if(curScreen==='rec')renderRecetas();
+  if(curScreen==='pos')renderPOS();
+  if(curScreen==='alertas')renderAlertas();
+  if(curScreen==='rep')renderRep();
+  if(curScreen==='users')renderUsers();
+  if(curScreen==='fmt')renderFormatos();
+  if(curScreen==='mob')renderMobiliario();
+}
+
+function fmtCOP(n){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n);}
+function ej(s){if(!s&&s!==0)return '';return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function ea(s){if(!s&&s!==0)return '';return String(s).replace(/"/g,'&quot;');}
+
+function toast(msg,bg){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast';
+  if(bg){t.style.background=bg;if(bg!=='var(--amarillo)')t.style.color='#fff';}
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+document.getElementById('searchInp').addEventListener('input',function(){searchQ=this.value;renderInv();renderMenu();});
+
+/* ══════════════════════════════════════════
+   ARRANCAR
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   MOBILIARIO Y UTENSILIOS
+══════════════════════════════════════════ */
+const MOB_CATALOG = [
+  {cat:'Cocina — Utensilios',items:[
+    'Sartén antiadherente 20cm','Sartén antiadherente 28cm','Sartén de hierro',
+    'Olla grande','Olla mediana','Olla pequeña','Cacerola','Wok',
+    'Batidora de mano','Batidora de pie','Licuadora','Procesador de alimentos',
+    'Horno tostador','Cafetera espresso','Prensa francesa','Dripper V60',
+    'Cuchillo chef','Cuchillo pan','Tabla de picar grande','Tabla de picar pequeña',
+    'Espátula silicona','Espátula metálica','Pinzas','Cucharón','Colador',
+    'Bowl grande inox','Bowl mediano','Bandeja horno','Molde torta redondo',
+    'Molde torta rectangular','Manga pastelera','Boquillas set','Termómetro cocina',
+    'Balanza digital','Rallador','Pelador','Abrelatas','Tijeras cocina',
+  ]},
+  {cat:'Vajilla — Servicio',items:[
+    'Plato plano grande','Plato plano mediano (postre)','Plato hondo',
+    'Plato moka','Taza espresso','Taza americano','Taza latte 10oz',
+    'Taza nona','Taza infusión','Taza chai','Taza matcha',
+    'Copa margarita','Copa mimosa','Copa vino tinto','Copa vino blanco',
+    'Copa Hatsu','Vaso jugo','Vaso agua largo','Vaso water',
+    'Jarra agua vidrio','Jarra agua plástico','Prensa francesa (servicio)',
+    'Cucharita moka','Cucharita postre','Tenedor postre','Cuchillo mesa',
+    'Bandeja servicio','Tabla madera presentación','Tabla pizarra',
+  ]},
+  {cat:'Barra — Equipos',items:[
+    'Máquina espresso','Molino café','Calentador leche','Refrigerador vitrina',
+    'Nevera bebidas','Congelador helados','Dispensador agua caliente',
+    'Coctelera','Strainer','Jigger','Bar spoon','Muddler',
+    'Exprimidor limón','Licuadora barra','Hielo (bolsa)','Termómetro leche',
+  ]},
+  {cat:'Empaques para llevar',items:[
+    'Vasos cartón 5oz','Vasos cartón 10oz','Vasos plástico fríos 16oz',
+    'Tapas vasos fríos','Tapas vasos calientes','Pitillos y removedores',
+    'Cajas postres individual','Cajas torta porciones','Cajas para llevar 1 persona',
+    'Bolsas papel Sessanio','Servilletas','Palillos de madera',
+    'Bolsas empaque domicilio','Stickers sello Sessanio',
+  ]},
+  {cat:'Aseo y limpieza',items:[
+    'Trapero','Balde','Escoba','Recogedor','Esponja lavar','Estropajo',
+    'Dispensador jabón manos','Papel higiénico (paquete)','Papel toalla cocina',
+    'Limpiavidrios','Desengrasante','Desinfectante pisos','Hipoclorito',
+    'Bolsas basura negras grandes','Bolsas basura pequeñas','Guantes nitrilo (caja)',
+  ]},
+  {cat:'Mobiliario y decoración',items:[
+    'Mesa 2 puestos','Mesa 4 puestos','Silla','Taburete barra',
+    'Mostrador barra','Vitrina postres','Estante cocina','Estante barra',
+    'Cuadro decorativo','Planta artificial','Maceta','Lámpara mesa',
+    'Extensión eléctrica','Datáfono','Caja registradora','Impresora comanda',
+  ]},
+];
+
+function initMob(){
+  const o={};
+  if(!MOB_CATALOG||!Array.isArray(MOB_CATALOG)){document.getElementById('mobContainer').innerHTML='<div style="color:var(--rojo)">Error cargando catálogo</div>';return;}
+  MOB_CATALOG.forEach(cat=>{
+    o[cat.cat]={};
+    cat.items.forEach(item=>{
+      o[cat.cat][item]={cant:0,estado:'bueno',nota:''};
+    });
+  });
+  return o;
+}
+
+function pushMob(){
+  lsSet(LSMOB,mobiliario);
+  if(fireMobRef)fireMobRef.set(sanitizeForFb(mobiliario)).catch(()=>{});
+}
+
+function renderMobiliario(){
+  const term=searchQ.toLowerCase();
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;">Activos, utensilios y empaques</div>
+    <button class="btn btn-dorado btn-sm" onclick="exportMobPDF()">📄 PDF</button>
+  </div>`;
+  MOB_CATALOG.forEach(cat=>{
+    const cd=mobiliario[cat.cat]||{};
+    const items=cat.items.filter(n=>!term||n.toLowerCase().includes(term));
+    if(!items.length&&term)return;
+    html+=`<div class="cat-sec">
+      <div class="cat-head" onclick="toggleCat('mob_${ej(cat.cat)}')">
+        <span class="cn">${cat.cat}</span>
+        <span class="cm">${items.length} items ${collapsed['mob_'+cat.cat]?'▶':'▼'}</span>
+      </div>`;
+    if(!collapsed['mob_'+cat.cat]){
+      html+=`<div class="cat-body">
+        <div class="mob-head"><div>Ítem</div><div style="text-align:center">Cant.</div><div>Estado</div><div>Nota</div><div></div></div>`;
+      items.forEach(name=>{
+        const v=cd[name]||{cant:0,estado:'bueno',nota:''};
+        const ec=v.estado==='bueno'?'estado-bueno':v.estado==='regular'?'estado-regular':'estado-danado';
+        html+=`<div class="mob-row">
+          <div style="font-size:.8rem;font-weight:500">${name}</div>
+          <div><input class="mob-inp" type="number" min="0" value="${v.cant||0}" data-mc="${ea(cat.cat)}" data-mn="${ea(name)}" data-mf="cant" onchange="updMob(this)"></div>
+          <div><select class="mob-inp" data-mc="${ea(cat.cat)}" data-mn="${ea(name)}" data-mf="estado" onchange="updMob(this)">
+            <option value="bueno" ${v.estado==='bueno'?'selected':''}>✅ Bueno</option>
+            <option value="regular" ${v.estado==='regular'?'selected':''}>⚠️ Regular</option>
+            <option value="danado" ${v.estado==='danado'?'selected':''}>❌ Dañado</option>
+          </select></div>
+          <div><input class="mob-inp" type="text" value="${v.nota||''}" placeholder="..." data-mc="${ea(cat.cat)}" data-mn="${ea(name)}" data-mf="nota" onchange="updMob(this)" style="font-size:.72rem;"></div>
+          <div></div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+  document.getElementById('mobContainer').innerHTML=html;
+}
+
+function updMob(inp){
+  const mc=inp.dataset.mc, mn=inp.dataset.mn, mf=inp.dataset.mf;
+  if(!mobiliario[mc])mobiliario[mc]={};
+  if(!mobiliario[mc][mn])mobiliario[mc][mn]={cant:0,estado:'bueno',nota:''};
+  mobiliario[mc][mn][mf]=mf==='cant'?(parseFloat(inp.value)||0):inp.value;
+  clearTimeout(inp._t);
+  inp._t=setTimeout(()=>pushMob(),800);
+}
+
+function exportMobPDF(){
+  const w=window.open('','_blank');
+  let rows='';
+  MOB_CATALOG.forEach(cat=>{
+    const cd=mobiliario[cat.cat]||{};
+    rows+=`<tr><td colspan="4" style="background:#2e7d32;color:#fff;font-weight:700;padding:6px 10px;">${cat.cat}</td></tr>`;
+    cat.items.forEach(name=>{
+      const v=cd[name]||{cant:0,estado:'bueno',nota:''};
+      const ec=v.estado==='bueno'?'#e8f5e9':v.estado==='regular'?'#fff8e1':'#ffebee';
+      rows+=`<tr style="background:${ec}">
+        <td>${name}</td>
+        <td style="text-align:center">${v.cant||0}</td>
+        <td>${v.estado==='bueno'?'✅ Bueno':v.estado==='regular'?'⚠️ Regular':'❌ Dañado'}</td>
+        <td style="font-size:.85rem;color:#666">${v.nota||''}</td>
+      </tr>`;
+    });
+  });
+  w.document.write(`<html><head><title>Sessanio · Inventario Activos</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;}
+  h2{color:#2e7d32;}p{color:#888;font-size:.85rem;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;}
+  th{background:#2e7d32;color:#fff;padding:7px 10px;text-align:left;}
+  td{border-bottom:1px solid #eee;padding:6px 10px;}
+  </style></head><body>
+  <h2>Sessanio Brunch e Caffé</h2>
+  <p>Inventario de activos, utensilios y empaques · ${new Date().toLocaleDateString('es-CO')} · Generado por: ${sesion.nombre}</p>
+  <table><tr><th>Ítem</th><th>Cantidad</th><th>Estado</th><th>Nota</th></tr>${rows}</table>
+  </body></html>`);
+  w.print();
+}
+
+/* ══════════════════════════════════════════
+   FORMATOS OPERATIVOS
+══════════════════════════════════════════ */
+const FORMATOS_DEF = [
+  {id:'apertura_caja', icon:'💵', nombre:'Apertura de Caja', desc:'Base inicial y denominaciones', roles:['admin','caja']},
+  {id:'cierre_caja',   icon:'🔒', nombre:'Cierre de Caja',   desc:'Ventas, efectivo y diferencias', roles:['admin','caja']},
+  {id:'temperatura',   icon:'🌡️', nombre:'Control de Temperaturas', desc:'Neveras y congeladores', roles:['admin','cocina']},
+  {id:'chequeo_apertura', icon:'✅', nombre:'Chequeo Apertura', desc:'Limpieza y mise en place', roles:['admin','cocina','caja']},
+  {id:'chequeo_cierre',   icon:'🔐', nombre:'Chequeo Cierre', desc:'Cierre seguro y limpieza profunda', roles:['admin','cocina','caja']},
+  {id:'requisicion',   icon:'📦', nombre:'Requisición Insumos', desc:'Pedido interno por área', roles:['admin','cocina','caja']},
+  {id:'limpieza',      icon:'🧹', nombre:'Registro de Limpieza', desc:'Desinfección y responsable', roles:['admin','cocina']},
+];
+
+let fmtActivo=null;
+let fmtHist=false;
+
+function renderFormatos(){
+  const rol=sesion.rol;
+  const visibles=FORMATOS_DEF.filter(f=>f.roles.includes(rol));
+  const hist=formatos.slice(0,10);
+  let html=`<div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;margin-bottom:12px;">Formatos operativos</div>
+  <div class="formato-grid">`;
+  visibles.forEach(f=>{
+    html+=`<div class="formato-card" onclick="abrirFormato('${f.id}')">
+      <div class="fic">${f.icon}</div>
+      <div class="fn">${f.nombre}</div>
+      <div class="fd">${f.desc}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  if(hist.length){
+    html+=`<div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;margin-bottom:10px;">Últimos registros</div>`;
+    html+=hist.map(f=>`<div class="hist-row">
+      <div>
+        <div class="ht">${FORMATOS_DEF.find(d=>d.id===f.tipo)?.nombre||f.tipo}</div>
+        <div class="hd">${new Date(f.ts).toLocaleString('es-CO')} · ${f.usuario}</div>
+      </div>
+      <button class="hbtn" onclick="verFormato('${f.id}')">📄 Ver PDF</button>
+    </div>`).join('');
+  }
+  document.getElementById('fmtContainer').innerHTML=html;
+}
+
+function abrirFormato(tipo){
+  fmtActivo=tipo;
+  const def=FORMATOS_DEF.find(d=>d.id===tipo);
+  const modal=document.getElementById('fmtModal');
+  document.getElementById('fmtModalTitle').textContent=def.icon+' '+def.nombre;
+  document.getElementById('fmtBody').innerHTML=buildFormHTML(tipo);
+  modal.classList.add('open');
+}
+
+function closeFmtModal(){
+  document.getElementById('fmtModal').classList.remove('open');
+  fmtActivo=null;
+}
+
+function buildFormHTML(tipo){
+  const hoy=new Date().toISOString().slice(0,10);
+  const hora=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+  if(tipo==='apertura_caja') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="fgrid2">
+      <div class="frow"><label>Turno</label><select id="f_turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
+      <div class="frow"><label>Responsable</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    </div>
+    <div class="fsec">Denominaciones</div>
+    <div class="fgrid3">
+      <div class="frow"><label>$100.000 × cant</label><input type="number" id="f_100" min="0" value="0"></div>
+      <div class="frow"><label>$50.000 × cant</label><input type="number" id="f_50" min="0" value="0"></div>
+      <div class="frow"><label>$20.000 × cant</label><input type="number" id="f_20" min="0" value="0"></div>
+      <div class="frow"><label>$10.000 × cant</label><input type="number" id="f_10" min="0" value="0"></div>
+      <div class="frow"><label>$5.000 × cant</label><input type="number" id="f_5" min="0" value="0"></div>
+      <div class="frow"><label>$2.000 × cant</label><input type="number" id="f_2" min="0" value="0"></div>
+      <div class="frow"><label>$1.000 × cant</label><input type="number" id="f_1" min="0" value="0"></div>
+      <div class="frow"><label>$500 × cant</label><input type="number" id="f_500" min="0" value="0"></div>
+      <div class="frow"><label>$200 × cant</label><input type="number" id="f_200" min="0" value="0"></div>
+      <div class="frow"><label>$100 × cant</label><input type="number" id="f_100c" min="0" value="0"></div>
+      <div class="frow"><label>$50 × cant</label><input type="number" id="f_50c" min="0" value="0"></div>
+    </div>
+    <div class="frow"><label>Base inicial ($)</label><input type="number" id="f_base" placeholder="Ej: 150000"></div>
+    <div class="frow"><label>Observaciones</label><textarea id="f_obs" placeholder="Novedades del turno..."></textarea></div>`;
+
+  if(tipo==='cierre_caja') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="fgrid2">
+      <div class="frow"><label>Turno</label><select id="f_turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
+      <div class="frow"><label>Cajero</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    </div>
+    <div class="fsec">Ventas del turno</div>
+    <div class="fgrid2">
+      <div class="frow"><label>Efectivo recibido ($)</label><input type="number" id="f_efectivo" value="0"></div>
+      <div class="frow"><label>Datáfono ($)</label><input type="number" id="f_datafono" value="0"></div>
+      <div class="frow"><label>Domicilios ($)</label><input type="number" id="f_domicilio" value="0"></div>
+      <div class="frow"><label>Transferencias ($)</label><input type="number" id="f_transfer" value="0"></div>
+    </div>
+    <div class="fsec">Caja</div>
+    <div class="fgrid2">
+      <div class="frow"><label>Base inicial ($)</label><input type="number" id="f_base" value="0"></div>
+      <div class="frow"><label>Gastos del día ($)</label><input type="number" id="f_gastos" value="0"></div>
+      <div class="frow"><label>Efectivo en caja ($)</label><input type="number" id="f_caja_final" value="0"></div>
+      <div class="frow"><label>Diferencia ($)</label><input type="number" id="f_diferencia" value="0" readonly style="background:#f5f5f5;"></div>
+    </div>
+    <div class="frow"><label>Descripción gastos</label><textarea id="f_obs_gastos" placeholder="Detallar gastos realizados..."></textarea></div>
+    <div class="frow"><label>Observaciones</label><textarea id="f_obs"></textarea></div>`;
+
+  if(tipo==='temperatura') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="frow"><label>Responsable</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    <div class="fsec">Neveras (ideal: 0°C a 4°C)</div>
+    ${['Nevera principal cocina','Nevera barra','Nevera postres'].map((n,i)=>`
+    <div style="font-size:.8rem;font-weight:600;color:var(--menta-deep);margin:8px 0 4px;">${n}</div>
+    <div class="fgrid2">
+      <div class="frow"><label>AM (°C)</label><input type="number" id="f_nev${i}_am" placeholder="2"></div>
+      <div class="frow"><label>PM (°C)</label><input type="number" id="f_nev${i}_pm" placeholder="3"></div>
+    </div>`).join('')}
+    <div class="fsec">Congeladores (ideal: -18°C a -20°C)</div>
+    ${['Congelador helados'].map((n,i)=>`
+    <div style="font-size:.8rem;font-weight:600;color:var(--menta-deep);margin:8px 0 4px;">${n}</div>
+    <div class="fgrid2">
+      <div class="frow"><label>AM (°C)</label><input type="number" id="f_con${i}_am" placeholder="-18"></div>
+      <div class="frow"><label>PM (°C)</label><input type="number" id="f_con${i}_pm" placeholder="-18"></div>
+    </div>`).join('')}
+    <div class="frow"><label>Observaciones</label><textarea id="f_obs" placeholder="Novedades de temperatura..."></textarea></div>`;
+
+  if(tipo==='chequeo_apertura') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="frow"><label>Responsable apertura</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    <div class="fsec">Limpieza y orden</div>
+    ${['Pisos y mesas limpios','Baños limpios y dotados','Zona cocina organizada','Barra limpia y organizada','Vitrina postres limpia'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+      <input type="checkbox" id="f_ap${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_ap${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">Equipos y mise en place</div>
+    ${['Café molido y listo','Leche puesta','Masas de cornetti listas','Postres en vitrina','Inventario revisado','Caja con base inicial','Datáfono funcionando','Menús en mesas'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+      <input type="checkbox" id="f_eq${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_eq${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="frow" style="margin-top:12px;"><label>Hora de apertura</label><input type="time" id="f_hora" value="${hora}"></div>
+    <div class="frow"><label>Observaciones</label><textarea id="f_obs"></textarea></div>`;
+
+  if(tipo==='chequeo_cierre') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="frow"><label>Responsable cierre</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    <div class="fsec">Limpieza profunda</div>
+    ${['Pisos trapeados con desinfectante','Mesas y sillas limpias','Baños limpios','Cocina desengrasada','Neveras organizadas','Barra limpia','Cafetera limpia','Menaje lavado y guardado'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+      <input type="checkbox" id="f_ci${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_ci${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">Cierre seguro</div>
+    ${['Caja cuadrada y entregada','Puertas y ventanas aseguradas','Gas cerrado','Equipos apagados','Luces apagadas','Alarma activada'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+      <input type="checkbox" id="f_sg${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_sg${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="frow" style="margin-top:12px;"><label>Hora de cierre</label><input type="time" id="f_hora" value="${hora}"></div>
+    <div class="frow"><label>Observaciones</label><textarea id="f_obs"></textarea></div>`;
+
+  if(tipo==='requisicion') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="fgrid2">
+      <div class="frow"><label>Área que solicita</label>
+        <select id="f_area"><option>Cocina</option><option>Barra</option><option>Caja/Servicio</option><option>Admin</option></select>
+      </div>
+      <div class="frow"><label>Solicitado por</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    </div>
+    <div class="fsec">Productos a pedir</div>
+    <div id="req_items">
+      ${[0,1,2,3,4].map(i=>`
+      <div class="fgrid3" style="margin-bottom:6px;">
+        <div class="frow" style="grid-column:1/-1"><input type="text" id="f_rp${i}" placeholder="Nombre producto ${i+1}"></div>
+        <div class="frow"><input type="number" id="f_rq${i}" placeholder="Cantidad" min="0"></div>
+        <div class="frow"><input type="text" id="f_ru${i}" placeholder="Unidad (kg, l, und...)"></div>
+      </div>`).join('')}
+    </div>
+    <div class="frow"><label>Observaciones / urgencia</label><textarea id="f_obs" placeholder="Indicar si algún producto es urgente..."></textarea></div>`;
+
+  if(tipo==='limpieza') return `
+    <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
+    <div class="fgrid2">
+      <div class="frow"><label>Turno</label><select id="f_turno"><option>Mañana</option><option>Tarde</option><option>Cierre</option></select></div>
+      <div class="frow"><label>Responsable</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+    </div>
+    <div class="fsec">Superficies limpiadas</div>
+    ${[
+      ['Mesas comedor','Desinfectante multiusos'],
+      ['Sillas','Desinfectante multiusos'],
+      ['Barra','Desengrasante + desinfectante'],
+      ['Pisos','Hipoclorito al 2%'],
+      ['Neveras (exterior)','Limpiavidrios'],
+      ['Neveras (interior)','Desinfectante alimentario'],
+      ['Estufa/plancha','Desengrasante'],
+      ['Cafetera','Limpiador específico'],
+      ['Baños','Hipoclorito + desinfectante'],
+      ['Vidrios','Limpiavidrios'],
+    ].map(([sup,prod],i)=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr 40px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--menta);font-size:.8rem;">
+      <div>${sup}</div>
+      <div style="color:var(--muted);font-size:.72rem;">${prod}</div>
+      <input type="checkbox" id="f_lim${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+    </div>`).join('')}
+    <div class="frow" style="margin-top:12px;"><label>Productos utilizados / observaciones</label><textarea id="f_obs"></textarea></div>`;
+
+  return '<p style="color:var(--muted);font-size:.85rem;">Formato no disponible.</p>';
+}
+
+function generarPDF(){
+  if(!fmtActivo)return;
+  const def=FORMATOS_DEF.find(d=>d.id===fmtActivo);
+  const form=document.getElementById('fmtBody');
+  const fecha=document.getElementById('f_fecha')?.value||new Date().toISOString().slice(0,10);
+  const resp=document.getElementById('f_resp')?.value||sesion.nombre;
+  const obs=document.getElementById('f_obs')?.value||'';
+
+  // Guardar registro
+  const reg={id:'r'+Date.now(),tipo:fmtActivo,ts:Date.now(),fecha,usuario:sesion.username,nombre:sesion.nombre};
+  formatos.unshift(reg);
+  if(formatos.length>100)formatos=formatos.slice(0,100);
+  lsSet(LSFMT,formatos);
+  if(fireFmtRef)fireFmtRef.child(reg.id).set(reg).catch(()=>{});
+
+  // Construir PDF via ventana de impresión
+  const inputs=form.querySelectorAll('input,select,textarea');
+  let filas='';
+  inputs.forEach(el=>{
+    const lbl=el.closest('.frow')?.querySelector('label')?.textContent||el.id;
+    let val=el.type==='checkbox'?(el.checked?'✅':'☐'):el.value;
+    if(el.type==='checkbox'){
+      const lblEl=document.querySelector(`label[for="${el.id}"]`);
+      const txt=lblEl?lblEl.textContent:el.id;
+      filas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${txt}</td><td style="text-align:center;border-bottom:1px solid #eee;">${val}</td></tr>`;
+    } else if(val&&lbl&&lbl!==el.id){
+      filas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">${lbl}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${val}</td></tr>`;
+    }
+  });
+
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Sessanio · ${def.nombre}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:28px;color:#1b3a1e;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #d4891a;padding-bottom:12px;margin-bottom:16px;}
+    .brand{font-size:1.5rem;font-style:italic;color:#2e7d32;font-family:Georgia,serif;}
+    .brand span{color:#d4891a;}
+    .meta{text-align:right;font-size:.82rem;color:#666;}
+    h2{color:#2e7d32;font-size:1.1rem;margin-bottom:12px;}
+    table{width:100%;border-collapse:collapse;font-size:.9rem;}
+    th{background:#2e7d32;color:#fff;padding:8px 10px;text-align:left;}
+    .footer{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+    .firma{border-top:1px solid #999;padding-top:6px;font-size:.8rem;color:#666;text-align:center;}
+    @media print{body{padding:12px;}}
+  </style></head><body>
+  <div class="header">
+    <div>
+      <div class="brand">Sessanio <span>·</span> Brunch e Caffé</div>
+      <div style="font-size:.8rem;color:#666;">Carrera 1G N.° 46-65 · Tunja, Boyacá</div>
+    </div>
+    <div class="meta">
+      <strong>${def.icon} ${def.nombre}</strong><br>
+      Fecha: ${fecha}<br>
+      Generado: ${new Date().toLocaleString('es-CO')}<br>
+      Por: ${resp}
+    </div>
+  </div>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    ${filas}
+  </table>
+  <div class="footer">
+    <div class="firma">Responsable: ${resp}<br><br>_________________________<br>Firma</div>
+    <div class="firma">Revisado por:<br><br>_________________________<br>Firma supervisor</div>
+  </div>
+  </body></html>`);
+  setTimeout(()=>w.print(),400);
+  closeFmtModal();
+  renderFormatos();
+  toast('✅ PDF generado y registrado');
+}
+
+function verFormato(id){toast('Abre el registro desde el historial');}
+
+
+const DEFAULT_RECIPES={"Cornetti de mantequilla":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Mantequilla","qty":0.02,"unit":"kg"}]},"Cornetti de arequipe":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Arequipe","qty":0.04,"unit":"kg"}]},"Cornetti de mermelada":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Mermelada de fruta","qty":0.03,"unit":"kg"}]},"Cornetti de nutella":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Chocolate de mesa","qty":0.025,"unit":"kg"}]},"Cornetti de crema pastelera":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Crema de leche / agria","qty":0.03,"unit":"l"},{"ing":"Azúcar","qty":0.005,"unit":"kg"},{"ing":"Huevos","qty":0.125,"unit":"unidad"}]},"Cornetti de jamón y queso":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Jamón serrano","qty":0.025,"unit":"kg"},{"ing":"Queso cheddar","qty":0.02,"unit":"kg"}]},"Cornetti de pollo":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Pollo (pechuga)","qty":0.04,"unit":"kg"}]},"Cornetti de carne madurada":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Carne de res (pecho/desmechada)","qty":0.04,"unit":"kg"}]},"Cornetti de tocineta":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Sal","qty":0.0017,"unit":"kg"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Tocineta","qty":0.025,"unit":"kg"},{"ing":"Queso cheddar","qty":0.015,"unit":"kg"}]},"Biscocho de Chocolate":{"ingredientes":[{"ing":"Harina pastelera","qty":0.0275,"unit":"kg"},{"ing":"Cocoa","qty":0.0063,"unit":"kg"},{"ing":"Aceite vegetal","qty":0.0146,"unit":"l"},{"ing":"Azúcar","qty":0.0312,"unit":"kg"},{"ing":"Huevos","qty":0.25,"unit":"unidad"},{"ing":"Leche entera","qty":0.0187,"unit":"l"},{"ing":"Café instantáneo","qty":1.125,"unit":"g"},{"ing":"Mayonesa","qty":0.01,"unit":"kg"}]},"Biscocho de Capuchino":{"ingredientes":[{"ing":"Mantequilla","qty":0.0288,"unit":"kg"},{"ing":"Azúcar","qty":0.0275,"unit":"kg"},{"ing":"Huevos","qty":0.375,"unit":"unidad"},{"ing":"Harina pastelera","qty":0.0281,"unit":"kg"},{"ing":"Cocoa","qty":0.0025,"unit":"kg"},{"ing":"Leche entera","qty":0.0213,"unit":"l"},{"ing":"Café instantáneo","qty":2.75,"unit":"g"}]},"Biscocho Red Velvet":{"ingredientes":[{"ing":"Harina pastelera","qty":0.0344,"unit":"kg"},{"ing":"Cocoa","qty":0.0025,"unit":"kg"},{"ing":"Aceite vegetal","qty":0.0225,"unit":"l"},{"ing":"Azúcar","qty":0.025,"unit":"kg"},{"ing":"Huevos","qty":0.375,"unit":"unidad"},{"ing":"Mayonesa","qty":0.0125,"unit":"kg"},{"ing":"Leche entera","qty":0.02,"unit":"l"},{"ing":"Colorante rojo","qty":0.25,"unit":"g"}]},"Tiramisú":{"ingredientes":[{"ing":"Huevos","qty":0.5,"unit":"unidad"},{"ing":"Azúcar","qty":0.0138,"unit":"kg"},{"ing":"Harina pastelera","qty":0.015,"unit":"kg"},{"ing":"Café instantáneo","qty":2.0,"unit":"g"},{"ing":"Crema de leche / agria","qty":0.025,"unit":"l"}]},"Cheesecake de pistacho":{"ingredientes":[{"ing":"Galletas base (cheesecake)","qty":0.03,"unit":"kg"},{"ing":"Mantequilla","qty":0.01,"unit":"kg"},{"ing":"Huevos","qty":0.125,"unit":"unidad"},{"ing":"Crema de leche / agria","qty":0.025,"unit":"l"},{"ing":"Azúcar","qty":0.0125,"unit":"kg"},{"ing":"Queso crema","qty":0.0437,"unit":"kg"},{"ing":"Gelatina sin sabor","qty":1.125,"unit":"g"}]},"Cheesecake de Oreo":{"ingredientes":[{"ing":"Galletas base (cheesecake)","qty":0.03,"unit":"kg"},{"ing":"Mantequilla","qty":0.01,"unit":"kg"},{"ing":"Huevos","qty":0.125,"unit":"unidad"},{"ing":"Crema de leche / agria","qty":0.025,"unit":"l"},{"ing":"Azúcar","qty":0.0125,"unit":"kg"},{"ing":"Queso crema","qty":0.0437,"unit":"kg"},{"ing":"Gelatina sin sabor","qty":1.125,"unit":"g"}]},"Cheesecake de frutos rojos":{"ingredientes":[{"ing":"Galletas base (cheesecake)","qty":0.0275,"unit":"kg"},{"ing":"Mantequilla","qty":0.01,"unit":"kg"},{"ing":"Huevos","qty":0.125,"unit":"unidad"},{"ing":"Crema de leche / agria","qty":0.025,"unit":"l"},{"ing":"Azúcar","qty":0.0125,"unit":"kg"},{"ing":"Queso crema","qty":0.0413,"unit":"kg"},{"ing":"Frutos rojos","qty":0.025,"unit":"kg"},{"ing":"Gelatina sin sabor","qty":0.75,"unit":"g"}]},"Desayuno clásico":{"ingredientes":[{"ing":"Huevos","qty":2,"unit":"unidad"},{"ing":"Pan para emparedado","qty":2,"unit":"unidad"},{"ing":"Jamón serrano","qty":0.06,"unit":"kg"},{"ing":"Queso cheddar","qty":0.04,"unit":"kg"}]},"Desayuno fit":{"ingredientes":[{"ing":"Huevos","qty":2,"unit":"unidad"},{"ing":"Aguacate","qty":0.5,"unit":"unidad"},{"ing":"Tomate","qty":0.1,"unit":"kg"}]},"Tostadas francesas":{"ingredientes":[{"ing":"Pan para emparedado","qty":2,"unit":"unidad"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Mantequilla","qty":0.02,"unit":"kg"},{"ing":"Arequipe","qty":0.05,"unit":"kg"}]},"Bowl de granola":{"ingredientes":[{"ing":"Granola","qty":0.08,"unit":"kg"},{"ing":"Yogur griego","qty":0.15,"unit":"kg"},{"ing":"Frutos rojos","qty":0.08,"unit":"kg"}]},"Eggs Benedict":{"ingredientes":[{"ing":"Huevos","qty":2,"unit":"unidad"},{"ing":"Jamón serrano","qty":0.06,"unit":"kg"},{"ing":"Pan para emparedado","qty":1,"unit":"unidad"},{"ing":"Mantequilla","qty":0.03,"unit":"kg"}]},"Avocado toast":{"ingredientes":[{"ing":"Pan para emparedado","qty":2,"unit":"unidad"},{"ing":"Aguacate","qty":1,"unit":"unidad"},{"ing":"Huevos","qty":1,"unit":"unidad"}]},"Tabla de embutidos":{"ingredientes":[{"ing":"Jamón serrano","qty":0.1,"unit":"kg"},{"ing":"Salami / pepperoni","qty":0.08,"unit":"kg"},{"ing":"Queso cheddar","qty":0.08,"unit":"kg"},{"ing":"Queso mozzarella","qty":0.08,"unit":"kg"}]},"Crepe de arequipe":{"ingredientes":[{"ing":"Harina de trigo","qty":0.06,"unit":"kg"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Leche entera","qty":0.1,"unit":"l"},{"ing":"Arequipe","qty":0.06,"unit":"kg"}]},"Crepe de frutos rojos":{"ingredientes":[{"ing":"Harina de trigo","qty":0.06,"unit":"kg"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Leche entera","qty":0.1,"unit":"l"},{"ing":"Frutos rojos","qty":0.08,"unit":"kg"}]},"Crepe de banano":{"ingredientes":[{"ing":"Harina de trigo","qty":0.06,"unit":"kg"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Leche entera","qty":0.1,"unit":"l"},{"ing":"Banano","qty":0.1,"unit":"kg"}]},"Crepe de pollo":{"ingredientes":[{"ing":"Harina de trigo","qty":0.06,"unit":"kg"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Leche entera","qty":0.1,"unit":"l"},{"ing":"Pollo (pechuga)","qty":0.1,"unit":"kg"}]},"Crepe de jamón y queso":{"ingredientes":[{"ing":"Harina de trigo","qty":0.06,"unit":"kg"},{"ing":"Huevos","qty":1,"unit":"unidad"},{"ing":"Leche entera","qty":0.1,"unit":"l"},{"ing":"Jamón serrano","qty":0.06,"unit":"kg"},{"ing":"Queso cheddar","qty":0.04,"unit":"kg"}]},"Café americano":{"ingredientes":[{"ing":"Café en grano","qty":0.018,"unit":"kg"}]},"Cappuccino":{"ingredientes":[{"ing":"Café en grano","qty":0.018,"unit":"kg"},{"ing":"Leche entera","qty":0.12,"unit":"l"}]},"Latte":{"ingredientes":[{"ing":"Café en grano","qty":0.018,"unit":"kg"},{"ing":"Leche entera","qty":0.2,"unit":"l"}]},"Chocolate caliente":{"ingredientes":[{"ing":"Chocolate de mesa","qty":0.04,"unit":"kg"},{"ing":"Leche entera","qty":0.2,"unit":"l"}]},"Chai latte":{"ingredientes":[{"ing":"Chai concentrado","qty":0.06,"unit":"l"},{"ing":"Leche entera","qty":0.15,"unit":"l"}]},"Té en hebra":{"ingredientes":[{"ing":"Té negro / hebras surtidas","qty":0.005,"unit":"kg"}]},"Limonada de coco":{"ingredientes":[{"ing":"Limón","qty":0.08,"unit":"kg"},{"ing":"Leche de almendras","qty":0.15,"unit":"l"}]},"Smoothie de frutos rojos":{"ingredientes":[{"ing":"Frutos rojos","qty":0.15,"unit":"kg"},{"ing":"Yogur griego","qty":0.1,"unit":"kg"},{"ing":"Banano","qty":0.1,"unit":"kg"}]},"Espresso martini":{"ingredientes":[{"ing":"Café en grano","qty":0.018,"unit":"kg"},{"ing":"Vodka","qty":0.06,"unit":"l"}]},"Amaretto sour":{"ingredientes":[{"ing":"Amaretto","qty":0.05,"unit":"l"},{"ing":"Limón","qty":0.04,"unit":"kg"}]},"Brandy sling":{"ingredientes":[{"ing":"Brandy","qty":0.05,"unit":"l"},{"ing":"Limón","qty":0.04,"unit":"kg"}]}};
+Object.assign(DEFAULT_RECIPES,{"Salsa de queso":{"ingredientes":[{"ing":"Queso mozzarella","qty":0.1,"unit":"kg"},{"ing":"Queso crema","qty":0.25,"unit":"kg"},{"ing":"Leche entera","qty":0.2,"unit":"l"},{"ing":"Crema de leche / agria","qty":0.2,"unit":"l"},{"ing":"Harina de trigo","qty":0.025,"unit":"kg"}]},"Salsa de perejil":{"ingredientes":[{"ing":"Crema de leche / agria","qty":0.2,"unit":"l"},{"ing":"Perejil","qty":0.1,"unit":"g"}]},"Salsa de pimentón":{"ingredientes":[{"ing":"Pimentón","qty":4,"unit":"unidad"},{"ing":"Crema de leche / agria","qty":0.2,"unit":"l"}]},"Salsa napolitana":{"ingredientes":[{"ing":"Tomate","qty":0.4,"unit":"kg"},{"ing":"Cebolla","qty":0.1,"unit":"kg"},{"ing":"Ajo","qty":3,"unit":"unidad"},{"ing":"Aceite vegetal","qty":0.03,"unit":"l"}]},"Salsa de frutos rojos":{"ingredientes":[{"ing":"Fresas","qty":0.4,"unit":"kg"},{"ing":"Frutos rojos","qty":0.2,"unit":"kg"},{"ing":"Azúcar","qty":0.3,"unit":"kg"},{"ing":"Maicena","qty":0.06,"unit":"kg"}]},"Granola casera":{"ingredientes":[{"ing":"Avena","qty":0.3,"unit":"kg"},{"ing":"Mantequilla","qty":0.02,"unit":"kg"},{"ing":"Miel","qty":0.15,"unit":"kg"}]},"Cornetti de carnes maduradas":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Carne de res (pecho/desmechada)","qty":0.06,"unit":"kg"}]},"Cornetti de carne en salsa de pimentón":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Carne de res (pecho/desmechada)","qty":0.06,"unit":"kg"},{"ing":"Crema de leche / agria","qty":0.03,"unit":"l"}]},"Cornetti de cerdo y queso cheddar":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Cerdo desmechado","qty":0.05,"unit":"kg"},{"ing":"Queso cheddar","qty":0.02,"unit":"kg"}]},"Cornetti de pollo al perejil":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Pollo (pechuga)","qty":0.06,"unit":"kg"},{"ing":"Crema de leche / agria","qty":0.02,"unit":"l"}]},"Cornetti de Tocineta y salsa de queso":{"ingredientes":[{"ing":"Harina de trigo","qty":0.0833,"unit":"kg"},{"ing":"Leche entera","qty":0.05,"unit":"l"},{"ing":"Levadura","qty":3.67,"unit":"g"},{"ing":"Azúcar","qty":0.0083,"unit":"kg"},{"ing":"Leche en polvo","qty":2.5,"unit":"g"},{"ing":"Tocineta","qty":0.04,"unit":"kg"},{"ing":"Queso mozzarella","qty":0.02,"unit":"kg"},{"ing":"Crema de leche / agria","qty":0.02,"unit":"l"}]},"Galleta de naranja y chocolate":{"ingredientes":[{"ing":"Harina de trigo","qty":0.05,"unit":"kg"},{"ing":"Mantequilla","qty":0.023,"unit":"kg"},{"ing":"Azúcar","qty":0.03,"unit":"kg"},{"ing":"Huevos","qty":0.2,"unit":"unidad"},{"ing":"Chocolate de mesa","qty":0.01,"unit":"kg"}]},"Crostata":{"ingredientes":[{"ing":"Mantequilla","qty":0.033,"unit":"kg"},{"ing":"Azúcar","qty":0.033,"unit":"kg"},{"ing":"Harina de trigo","qty":0.075,"unit":"kg"},{"ing":"Huevos","qty":0.22,"unit":"unidad"}]},"Crostatina":{"ingredientes":[{"ing":"Mantequilla","qty":0.012,"unit":"kg"},{"ing":"Azúcar","qty":0.012,"unit":"kg"},{"ing":"Harina de trigo","qty":0.027,"unit":"kg"},{"ing":"Huevos","qty":0.08,"unit":"unidad"}]}});
+loadUsers();
+</script>
+</body>
+</html>
