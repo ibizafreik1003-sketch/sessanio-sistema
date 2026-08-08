@@ -967,7 +967,8 @@ async function guardarCambios(){
   lsSet(LSK,inv);
   if(fireRef){
     try{
-      await fireRef.set(sanitizeForFb(inv));
+      const clean=sanitizeForFb(JSON.parse(JSON.stringify(inv)));
+      await fireRef.set(clean);
       if(btn){btn.innerHTML='✅ Guardado';btn.style.background='#388e3c';}
       toast('✅ Inventario guardado y sincronizado');
       _pendingChanges={};
@@ -1508,6 +1509,7 @@ async function initFirebase(){
   }
 }
 
+function fbKey(s){ return String(s||'').replace(/[.#$\[\]/]/g,'_'); }
 function sanitizeForFb(obj){
   if(Array.isArray(obj)){
     // Convert arrays to objects with index keys
