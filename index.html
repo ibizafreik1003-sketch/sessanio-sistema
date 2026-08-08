@@ -547,13 +547,55 @@ input,select,textarea{font-family:inherit;}
 
 
 
+<!-- MODAL AGREGAR PRODUCTO AL MENÚ -->
+<div class="modal-ov" id="addProdModal" onclick="if(event.target===this)document.getElementById('addProdModal').classList.remove('open')">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3>➕ Agregar producto al menú</h3>
+    <div class="ff"><label>Categoría</label>
+      <select id="newProdCat"><option>Cornetti dulce</option><option>Cornetti sal</option><option>Desayunos</option><option>Brunch</option><option>Crepes de dulce</option><option>Crepes de sal</option><option>Bebidas calientes</option><option>Cafés filtrados</option><option>Té en hebra</option><option>Bebidas frías</option><option>Cocteles</option><option>Postres</option><option>Postres completos</option><option>Almuerzo del día</option></select>
+    </div>
+    <div class="ff"><label>Nombre del producto</label><input type="text" id="newProdName" placeholder="Ej: Cornetti de aguacate"></div>
+    <div class="ff"><label>Precio ($)</label><input type="number" id="newProdPrice" placeholder="0" step="500" min="0"></div>
+    <button class="btn-full dorado" onclick="addMenuProduct()">✅ Agregar</button>
+    <button class="btn-full outline" style="margin-top:8px;" onclick="document.getElementById('addProdModal').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+<!-- MODAL EDITAR PRODUCTO INVENTARIO -->
+<div class="modal-ov" id="editItemModal" onclick="if(event.target===this)document.getElementById('editItemModal').classList.remove('open')">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3>✏️ Editar producto</h3>
+    <input type="hidden" id="eiCat"><input type="hidden" id="eiOldName">
+    <div class="ff"><label>Nombre</label><input type="text" id="eiName"></div>
+    <div class="fgrid3">
+      <div class="ff"><label>Cantidad actual</label><input type="number" id="eiQty" min="0" step="0.1"></div>
+      <div class="ff"><label>Mínimo</label><input type="number" id="eiMin" min="0" step="0.1"></div>
+      <div class="ff"><label>Unidad</label>
+        <select id="eiUnit">
+          <option value="kg">kg</option><option value="l">l</option>
+          <option value="g">g</option><option value="ml">ml</option>
+          <option value="unidad">unidad</option><option value="paquete">paquete</option>
+          <option value="botella">botella</option><option value="caja">caja</option>
+          <option value="rollo">rollo</option><option value="par">par</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-full dorado" onclick="guardarEditItem()">💾 Guardar cambios</button>
+    <button class="btn-full outline" style="margin-top:8px;" onclick="document.getElementById('editItemModal').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
 <!-- MODAL NUEVA PRODUCCIÓN -->
 <div class="modal-ov" id="npModal" onclick="if(event.target===this)document.getElementById('npModal').classList.remove('open')">
   <div class="modal-sh">
     <div class="mhandle"></div>
     <h3>🏷️ Registrar producto elaborado</h3>
-    <div class="ff"><label>Nombre del producto</label>
-      <input type="text" id="npNombre" placeholder="Ej: Cheesecake de frutos rojos">
+    <div class="ff"><label>Producto elaborado</label>
+      <select id="npNombreSelect" onchange="onProdSelect(this)">
+        <option value="">-- Seleccionar producto del menú --</option>
+        <option value="__custom__">✏️ Escribir nombre personalizado...</option>
+      </select>
+      <input type="text" id="npNombre" placeholder="Nombre personalizado..." style="margin-top:6px;display:none;">
       <div id="npVidaHint" style="font-size:.72rem;color:var(--menta-deep);margin-top:4px;"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -891,7 +933,7 @@ function renderInv(){
           <div>${canEdit?`<input class="qty-inp ${qc}" type="number" min="0" step="0.5" value="${v.qty||0}" data-cat="${ea(cat.cat)}" data-name="${ea(name)}" onchange="updQty(this)" oninput="updQty(this)">`:`<strong>${v.qty||0}</strong>`}</div>
           <div style="text-align:center;font-size:.8rem;color:var(--muted)">${v.min}</div>
           <div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(pct)}%;background:${bc}"></div></div><div class="bar-lbl">${Math.round(pct)}%</div></div>
-          <div>${sesion&&sesion.rol==='admin'?`<button class="del-btn" onclick="delItem('${ej(cat.cat)}','${ej(name)}')">✕</button>`:''}</div>
+          <div style="display:flex;gap:4px;">${sesion&&sesion.rol==='admin'?`<button class="del-btn" title="Editar" onclick="editItem('${ej(cat.cat)}','${ej(name)}')">✏️</button><button class="del-btn" onclick="delItem('${ej(cat.cat)}','${ej(name)}')">✕</button>`:''}</div>
         </div>`;
       });
       if(sesion&&(sesion.rol==='admin'||sesion.rol==='cocina')){
@@ -989,10 +1031,56 @@ async function guardarCambios(){
   }
 }
 
+
+function editItem(cat, name){
+  const v=inv[cat]?.[name];
+  if(!v)return;
+  document.getElementById('eiCat').value=cat;
+  document.getElementById('eiOldName').value=name;
+  document.getElementById('eiName').value=name;
+  document.getElementById('eiUnit').value=v.unit||'kg';
+  document.getElementById('eiMin').value=v.min||1;
+  document.getElementById('eiQty').value=v.qty||0;
+  document.getElementById('editItemModal').classList.add('open');
+}
+function guardarEditItem(){
+  const cat=document.getElementById('eiCat').value;
+  const oldName=document.getElementById('eiOldName').value;
+  const newName=document.getElementById('eiName').value.trim();
+  const unit=document.getElementById('eiUnit').value;
+  const min=parseFloat(document.getElementById('eiMin').value)||1;
+  const qty=parseFloat(document.getElementById('eiQty').value)||0;
+  if(!newName){toast('El nombre no puede estar vacío','var(--rojo)');return;}
+  if(!inv[cat])inv[cat]={};
+  const existing=inv[cat][oldName]||{};
+  // Si cambia nombre, mover
+  if(newName!==oldName){
+    inv[cat][newName]={...existing,qty,min,unit,maxO:min*3,_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
+    delete inv[cat][oldName];
+  } else {
+    inv[cat][oldName]={...existing,qty,min,unit,maxO:Math.max(existing.maxO||0,qty,min*3),_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
+  }
+  lsSet(LSK,inv);
+  document.getElementById('editItemModal').classList.remove('open');
+  if(fireRef){
+    fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv))))
+      .then(()=>toast('✅ Producto actualizado y guardado'))
+      .catch(()=>toast('✅ Actualizado localmente'));
+  } else {
+    toast('✅ Producto actualizado');
+  }
+  renderInv();
+}
 function delItem(cat,name){
-  if(!confirm(`¿Eliminar "${name}"?`))return;
+  if(!confirm('¿Eliminar "'+name+'"?'))return;
   delete inv[cat][name];
-  pushInv();renderInv();
+  lsSet(LSK,inv);
+  if(fireRef){
+    fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv))))
+      .then(()=>toast('🗑 '+name+' eliminado'))
+      .catch(()=>{});
+  }
+  renderInv();
 }
 
 function addItem(cat,btn){
@@ -1002,15 +1090,27 @@ function addItem(cat,btn){
   const min=parseInt(row.querySelector('[name=nm]').value)||1;
   if(!name){toast('Escribe el nombre del producto','var(--rojo)');return;}
   if(!inv[cat])inv[cat]={};
-  inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion.username,_ts:Date.now()};
-  pushInv();renderInv();toast(`✅ "${name}" agregado`);
+  inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
+  lsSet(LSK,inv);
+  // Guardar inmediatamente en Firebase
+  if(fireRef){
+    fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv))))
+      .then(()=>toast('✅ '+name+' agregado y guardado'))
+      .catch(()=>toast('✅ '+name+' agregado (solo local)'));
+  } else {
+    toast('✅ '+name+' agregado');
+  }
+  renderInv();
 }
 
 /* ══════════════════════════════════════════
    INVENTARIO MENÚ / PRODUCTOS A LA VENTA
 ══════════════════════════════════════════ */
 function renderMenu(){
-  let html='';
+  const isAdmin=sesion&&sesion.rol==='admin';
+  let html=isAdmin?`<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <button class="btn btn-dorado btn-sm" onclick="document.getElementById('addProdModal').classList.add('open')">+ Agregar producto</button>
+  </div>`:'';
   Object.entries(MENU).forEach(([cat,items])=>{
     html+=`<div class="cat-sec">
       <div class="cat-head"><span class="cn">${cat}</span><span class="cm">${items.length} productos</span></div>
@@ -1027,10 +1127,13 @@ function renderMenu(){
       });
       if(maxPorciones===999)maxPorciones='—';
       const low=typeof maxPorciones==='number'&&maxPorciones<=3;
-      html+=`<div class="item-row ${low?'low':''}" style="grid-template-columns:1fr 70px 50px">
+      const isAdmin=sesion&&sesion.rol==='admin';
+      html+=`<div class="item-row ${low?'low':''}" style="grid-template-columns:1fr ${isAdmin?'90px':'70px'} 50px ${isAdmin?'40px':''}">
         <div class="iname">${p.name}</div>
-        <div style="text-align:center;font-size:.82rem;color:var(--menta-deep);font-weight:700">${p.price>0?fmtCOP(p.price):'Variable'}</div>
+        ${isAdmin?`<input type="number" class="qty-inp" style="text-align:center;font-size:.8rem;" value="${p.price}" min="0" step="500" onchange="updateMenuPrice('${ej(cat)}','${ej(p.name)}',this.value)" title="Editar precio">`:
+        `<div style="text-align:center;font-size:.82rem;color:var(--menta-deep);font-weight:700">${p.price>0?fmtCOP(p.price):'Variable'}</div>`}
         <div style="text-align:center;font-size:.82rem;font-weight:700;color:${low?'var(--rojo)':'var(--menta-deep)'}">${maxPorciones}</div>
+        ${isAdmin?`<button class="del-btn" onclick="deleteMenuProduct('${ej(cat)}','${ej(p.name)}')" title="Eliminar producto">✕</button>`:''}
       </div>`;
     });
     html+=`</div></div>`;
@@ -1315,6 +1418,54 @@ function isCrit(v){
   return (v.qty||0)===0 || stockPct(v)<=10; 
 }
 
+
+function updateMenuPrice(cat,name,val){
+  if(!MENU[cat])return;
+  const p=MENU[cat].find(x=>x.name===name);
+  if(p){
+    p.price=parseInt(val)||0;
+    // Guardar en Firebase/localStorage
+    lsSet('sessanio_v4_menu',MENU);
+    if(fireRef){
+      const menuClean=sanitizeForFb(JSON.parse(JSON.stringify(MENU)));
+      firebase.database(fireApp).ref('menu').set(menuClean).catch(()=>{});
+    }
+    toast('💰 Precio actualizado: '+fmtCOP(p.price));
+  }
+}
+function deleteMenuProduct(cat,name){
+  if(!confirm('¿Eliminar '+name+' del menú?'))return;
+  if(!MENU[cat])return;
+  MENU[cat]=MENU[cat].filter(p=>p.name!==name);
+  lsSet('sessanio_v4_menu',MENU);
+  if(fireRef){
+    firebase.database(fireApp).ref('menu').set(sanitizeForFb(JSON.parse(JSON.stringify(MENU)))).catch(()=>{});
+  }
+  renderMenu();toast('🗑 '+name+' eliminado del menú');
+}
+function addMenuProduct(){
+  const cat=document.getElementById('newProdCat').value;
+  const name=document.getElementById('newProdName').value.trim();
+  const price=parseInt(document.getElementById('newProdPrice').value)||0;
+  if(!name||!cat){toast('Completa categoría y nombre','var(--rojo)');return;}
+  if(!MENU[cat])MENU[cat]=[];
+  MENU[cat].push({name,price,recipe:[]});
+  lsSet('sessanio_v4_menu',MENU);
+  if(fireRef){
+    firebase.database(fireApp).ref('menu').set(sanitizeForFb(JSON.parse(JSON.stringify(MENU)))).catch(()=>{});
+  }
+  document.getElementById('addProdModal').classList.remove('open');
+  renderMenu();toast('✅ '+name+' agregado al menú');
+}
+
+function autoFillReqUnit(i){
+  const sel=document.getElementById('f_rp'+i);
+  const val=sel.value;
+  if(val&&val!=='__custom__'){
+    const parts=val.split('|');
+    if(parts[1])document.getElementById('f_ru'+i).value=parts[1];
+  }
+}
 function updateAlertBanner(){
   let n=0;
   CATALOG.forEach(c=>{const cd=inv[c.cat]||{};Object.values(cd).forEach(v=>{if(isLow(v))n++;});});
@@ -1705,8 +1856,48 @@ function prodCard(p){
     <span class="prod-badge ${bc}">${est.label}</span>${btn}
   </div>`;
 }
+
+function getProdMenuItems(){
+  const items=[''];
+  const cats=['Postres','Postres completos','Cornetti dulce','Cornetti sal','Desayunos','Brunch','Crepes de dulce','Crepes de sal','Bebidas calientes','Bebidas frías','Cocteles'];
+  cats.forEach(cat=>{if(MENU[cat])MENU[cat].forEach(p=>items.push({cat,name:p.name}));});
+  return items;
+}
+function onProdSelect(sel){
+  const inp=document.getElementById('npNombre');
+  const hint=document.getElementById('npVidaHint');
+  if(sel.value==='__custom__'){
+    inp.style.display='block';inp.value='';inp.focus();hint.textContent='';
+  } else if(sel.value){
+    inp.style.display='none';
+    const dias=vidaUtil(sel.value);
+    const v=new Date();v.setDate(v.getDate()+dias);
+    document.getElementById('npVence').value=v.toISOString().slice(0,10);
+    hint.textContent='Vida útil estimada: '+dias+' días';
+  } else {
+    inp.style.display='none';hint.textContent='';
+  }
+}
+function getNombreProd(){
+  const sel=document.getElementById('npNombreSelect');
+  const inp=document.getElementById('npNombre');
+  if(sel.value==='__custom__'||sel.value==='')return inp.value.trim();
+  return sel.value;
+}
 function abrirNuevaProd(){
   const hoy=new Date().toISOString().slice(0,10);
+  // Poblar select con productos del menú
+  const sel=document.getElementById('npNombreSelect');
+  sel.innerHTML='<option value="">-- Seleccionar producto --</option><option value="__custom__">✏️ Escribir nombre personalizado...</option>';
+  const cats=['Postres','Postres completos','Cornetti dulce','Cornetti sal','Desayunos','Brunch','Crepes de dulce','Crepes de sal','Bebidas calientes','Bebidas frías','Cocteles'];
+  cats.forEach(cat=>{
+    if(MENU[cat]&&MENU[cat].length){
+      const grp=document.createElement('optgroup');grp.label=cat;
+      MENU[cat].forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;grp.appendChild(o);});
+      sel.appendChild(grp);
+    }
+  });
+  document.getElementById('npNombre').style.display='none';
   document.getElementById('npNombre').value='';
   document.getElementById('npCant').value='1';
   document.getElementById('npUnidad').value='und';
@@ -1714,16 +1905,10 @@ function abrirNuevaProd(){
   document.getElementById('npVence').value='';
   document.getElementById('npNota').value='';
   document.getElementById('npVidaHint').textContent='';
-  document.getElementById('npNombre').oninput=function(){
-    const dias=vidaUtil(this.value);
-    const v=new Date();v.setDate(v.getDate()+dias);
-    document.getElementById('npVence').value=v.toISOString().slice(0,10);
-    document.getElementById('npVidaHint').textContent='Vida útil estimada: '+dias+' días';
-  };
   document.getElementById('npModal').classList.add('open');
 }
 function guardarProd(){
-  const nombre=document.getElementById('npNombre').value.trim();
+  const nombre=typeof getNombreProd==='function'?getNombreProd():document.getElementById('npNombre').value.trim();
   const cant=document.getElementById('npCant').value;
   const unidad=document.getElementById('npUnidad').value;
   const elab=document.getElementById('npElab').value;
@@ -2016,41 +2201,65 @@ function buildFormHTML(tipo){
 
   if(tipo==='chequeo_apertura') return `
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
-    <div class="frow"><label>Responsable apertura</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
-    <div class="fsec">Limpieza y orden</div>
-    ${['Pisos y mesas limpios','Baños limpios y dotados con papel','Zona cocina organizada y despejada','Barra limpia y organizada','Vitrina postres limpia y encendida','Pasillo cocina-salón despejado'].map((t,i)=>`
+    <div class="fgrid2">
+      <div class="frow"><label>Día semana</label>
+        <select id="f_dia"><option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option selected>Sábado</option><option>Domingo</option></select>
+      </div>
+      <div class="frow"><label>Responsable</label><input type="text" id="f_resp" value="${sesion&&sesion.nombre?sesion.nombre:''}"></div>
+    </div>
+
+    <div class="fsec">🏠 COCINA — Limpieza y orden</div>
+    ${['Pisos cocina limpios','Mesas de acero limpias y desinfectadas','Nevera principal organizada (revisar fechas)','Congelador encendido y temperatura correcta','Pasillo cocina-salón despejado','Utensilios lavados y en su lugar'].map((t,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
-      <input type="checkbox" id="f_ap${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
-      <label for="f_ap${i}" style="font-size:.85rem;">${t}</label>
+      <input type="checkbox" id="f_coc${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_coc${i}" style="font-size:.85rem;flex:1;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">🪑 Mesas y mobiliario</div>
-    ${['Todas las mesas niveladas sin bamboleo (verificar niveladores)','Sillas y taburetes sin daños ni roturas','Mesas alineadas con centros decorativos','Sofás y cojines limpios','Plantas en buen estado','Zona de entrada limpia y sin obstáculos'].map((t,i)=>`
+
+    ${new Date().getDay()===6?`
+    <div style="background:var(--dorado-pale);border:1px solid var(--dorado);border-radius:8px;padding:10px;margin:8px 0;">
+      <div style="font-weight:700;font-size:.82rem;color:var(--dorado);margin-bottom:6px;">🗓 SÁBADO — Limpieza profunda</div>
+      ${['Limpieza profunda interior congelador cocina','Limpieza interior nevera principal cocina','Limpieza profunda horno','Desengrase de estufas y superficies','Limpieza interior microondas'].map((t,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;">
+        <input type="checkbox" id="f_sab${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+        <label for="f_sab${i}" style="font-size:.82rem;">${t}</label>
+      </div>`).join('')}
+    </div>`:''}
+
+    <div class="fsec">☕ BARRA — Limpieza y surtido</div>
+    ${['Barra limpia y organizada','Máquina de café encendida y caliente','Molino funcionando con café del día','Leche puesta y fría','Jarabes y salsas de barra completos','Vasos, tazas y copas limpios en su lugar','Congelador de barra encendido y limpio','Nevera de barra con bebidas frías','Servilletas, pitillos, sobres de azúcar surtidos'].map((t,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
-      <input type="checkbox" id="f_mob${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
-      <label for="f_mob${i}" style="font-size:.85rem;">${t}</label>
+      <input type="checkbox" id="f_bar${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_bar${i}" style="font-size:.85rem;flex:1;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">🥗 Frescura de productos</div>
-    ${['Salsas y cremas rotuladas con fecha','Postres en vitrina con precio y fecha','Cornettis del día horneados y listos','Frutas y verduras revisadas (descartar deterioradas)','Bebidas frías a temperatura correcta','Café molido del día (no usar de días anteriores)','Productos barra rotulados con fecha de apertura','Revisar módulo Producción y retirar vencidos','Verificar PEPS — usar primero los de fecha más próxima'].map((t,i)=>`
+
+    <div class="fsec">🍽 SALÓN Y SERVICIO</div>
+    ${['Mesas niveladas sin bamboleo (verificar niveladores)','Sillas y cojines limpios','Centros de mesa en su lugar','Plantas en buen estado','Baños limpios y dotados','Menús en mesas','Entrada y zona exterior limpia'].map((t,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
-      <input type="checkbox" id="f_fresc${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
-      <label for="f_fresc${i}" style="font-size:.85rem;">${t}</label>
+      <input type="checkbox" id="f_sal${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_sal${i}" style="font-size:.85rem;flex:1;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">⚡ Equipos eléctricos y conexiones</div>
-    ${['Máquina de café encendida y caliente','Molino funcionando','Licuadora operativa','Batidora operativa','Neveras encendidas (T° revisada)','Congelador encendido','Luces del local funcionando','Datáfono / caja encendidos','Tomas eléctricas sin daños','Extensiones sin sobrecarga'].map((t,i)=>`
+
+    <div class="fsec">⚡ Equipos eléctricos</div>
+    ${['Máquina café encendida y caliente','Molino café funcionando','Luces del local funcionando','Datáfono / caja encendidos','Tomas eléctricas sin daños','Extensiones sin sobrecarga'].map((t,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
       <input type="checkbox" id="f_elec${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
-      <label for="f_elec${i}" style="font-size:.85rem;">${t}</label>
+      <label for="f_elec${i}" style="font-size:.85rem;flex:1;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">Mise en place y operación</div>
-    ${['Café molido y listo','Leche puesta','Masas de cornetti listas','Postres en vitrina','Inventario revisado y alertas atendidas','Caja con base inicial','Datáfono funcionando','Menús en mesas','Uniforme completo del equipo'].map((t,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
-      <input type="checkbox" id="f_eq${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
-      <label for="f_eq${i}" style="font-size:.85rem;">${t}</label>
-    </div>`).join('')}
-    <div class="frow" style="margin-top:12px;"><label>Hora de apertura</label><input type="time" id="f_hora" value="${hora}"></div>
-    <div class="frow"><label>Observaciones</label><textarea id="f_obs"></textarea></div>`;
 
-  if(tipo==='chequeo_cierre') return `
+    <div class="fsec">📦 Inventario de producción</div>
+    <div style="display:grid;grid-template-columns:1fr 70px;gap:6px;font-size:.72rem;color:var(--muted);padding:4px 0;">
+      <div>Producto</div><div style="text-align:center">Cantidad disponible</div>
+    </div>
+    ${['Cornettis horneados del día','Porciones de torta en vitrina','Porciones cheesecake','Macarons','Cupcakes','Galletas'].map((t,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 70px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--menta2);">
+      <label style="font-size:.85rem;">${t}</label>
+      <input type="number" id="f_inv${i}" min="0" value="0" style="border:1.5px solid var(--linea);border-radius:6px;padding:5px;text-align:center;font-size:.85rem;">
+    </div>`).join('')}
+
+    <div class="frow" style="margin-top:12px;"><label>Hora de apertura</label><input type="time" id="f_hora" value="${hora}"></div>
+    <div class="frow"><label>Observaciones generales</label><textarea id="f_obs" placeholder="Novedades, pendientes, alertas del día..."></textarea></div>`;
+
+    if(tipo==='chequeo_cierre') return `
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
     <div class="frow"><label>Responsable cierre</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
     <div class="fsec">Limpieza profunda</div>
@@ -2084,12 +2293,22 @@ function buildFormHTML(tipo){
     </div>
     <div class="fsec">Productos a pedir</div>
     <div id="req_items">
-      ${[0,1,2,3,4].map(i=>`
-      <div class="fgrid3" style="margin-bottom:6px;">
-        <div class="frow" style="grid-column:1/-1"><input type="text" id="f_rp${i}" placeholder="Nombre producto ${i+1}"></div>
-        <div class="frow"><input type="number" id="f_rq${i}" placeholder="Cantidad" min="0"></div>
-        <div class="frow"><input type="text" id="f_ru${i}" placeholder="Unidad (kg, l, und...)"></div>
-      </div>`).join('')}
+      ${[0,1,2,3,4,5,6,7].map(i=>{
+        const opts='<option value="">-- Seleccionar insumo --</option>'+
+          (typeof CATALOG!=='undefined'?CATALOG.map(c=>
+            '<optgroup label="'+c.cat+'">'+
+            c.items.map(it=>'<option value="'+it.name+'|'+it.unit+'">'+it.name+'</option>').join('')+
+            '</optgroup>'
+          ).join(''):'');
+        return `<div style="display:grid;grid-template-columns:1fr 70px 70px;gap:6px;margin-bottom:6px;">
+          <select id="f_rp${i}" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.78rem;" onchange="autoFillReqUnit(${i})">
+            ${opts}
+            <option value="__custom__">✏️ Otro...</option>
+          </select>
+          <input type="number" id="f_rq${i}" placeholder="Cant" min="0" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;text-align:center;font-size:.82rem;">
+          <input type="text" id="f_ru${i}" placeholder="Unidad" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.82rem;">
+        </div>`;
+      }).join('')}
     </div>
     <div class="frow"><label>Observaciones / urgencia</label><textarea id="f_obs" placeholder="Indicar si algún producto es urgente..."></textarea></div>`;
 
