@@ -911,6 +911,10 @@ function renderInv(){
 
 function toggleCat(cat){collapsed[cat]=!collapsed[cat];renderInv();}
 
+// Cambios pendientes de guardar
+let _pendingChanges={};
+let _saveTimer=null;
+
 function updQty(inp){
   const cat=inp.dataset.cat,name=inp.dataset.name;
   const val=parseFloat(inp.value)||0;
@@ -919,30 +923,69 @@ function updQty(inp){
   inv[cat][name].qty=val;
   inv[cat][name]._by=sesion&&sesion.username?sesion.username:'—';
   inv[cat][name]._ts=Date.now();
-  // Actualizar barra inmediatamente sin re-render completo
+  // Actualizar barra inmediatamente en el DOM
   const v=inv[cat][name];
   const pct=stockPct(v);
   const _isCrit=isCrit(v),_isLow=isLow(v);
   const bc=_isCrit?'var(--rojo)':_isLow?'var(--amarillo)':'var(--menta-dark)';
-  // Find and update bar in DOM directly
   try{
-    const allRows=document.querySelectorAll('.item-row');
-    allRows.forEach(row=>{
+    document.querySelectorAll('.item-row').forEach(row=>{
       const n=row.querySelector('.iname');
-      if(n&&n.textContent.includes(name)){
+      if(n&&n.textContent.trim().startsWith(name)){
         const fill=row.querySelector('.bar-fill');
         const lbl=row.querySelector('.bar-lbl');
-        const qInp=row.querySelector('.qty-inp');
         if(fill){fill.style.width=Math.round(pct)+'%';fill.style.background=bc;}
         if(lbl)lbl.textContent=Math.round(pct)+'%';
-        if(qInp){qInp.classList.toggle('crit',_isCrit);qInp.classList.toggle('low',_isLow&&!_isCrit);}
-        row.className='item-row '+(_isCrit?'crit':_isLow?'low':'');
+        row.className='item-row '+(_isCrit?'crit':_isLow?'low':'ok-stock');
       }
     });
   }catch(e){}
+  // Marcar como pendiente
+  _pendingChanges[cat+'|||'+name]=true;
+  lsSet(LSK,inv); // guardar local siempre
   updateAlertBanner();
-  clearTimeout(inp._t);
-  inp._t=setTimeout(()=>{pushInv(cat,name);},1200);
+  showSaveBtn();
+}
+
+function showSaveBtn(){
+  let btn=document.getElementById('floatSaveBtn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='floatSaveBtn';
+    btn.innerHTML='💾 Guardar cambios';
+    btn.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1f6b50;color:#fff;border:none;border-radius:25px;padding:14px 28px;font-size:.92rem;font-weight:700;z-index:100;box-shadow:0 4px 20px rgba(31,107,80,.4);font-family:Inter,sans-serif;cursor:pointer;white-space:nowrap;';
+    btn.onclick=guardarCambios;
+    document.body.appendChild(btn);
+  }
+  btn.style.display='block';
+  clearTimeout(_saveTimer);
+}
+
+async function guardarCambios(){
+  const btn=document.getElementById('floatSaveBtn');
+  if(btn){btn.innerHTML='⏳ Guardando...';btn.disabled=true;}
+  lsSet(LSK,inv);
+  if(fireRef){
+    try{
+      await fireRef.set(sanitizeForFb(inv));
+      if(btn){btn.innerHTML='✅ Guardado';btn.style.background='#388e3c';}
+      toast('✅ Inventario guardado y sincronizado');
+      _pendingChanges={};
+      setTimeout(()=>{
+        if(btn){btn.style.display='none';btn.style.background='#1f6b50';btn.innerHTML='💾 Guardar cambios';btn.disabled=false;}
+      },2000);
+    }catch(e){
+      if(btn){btn.innerHTML='❌ Error — reintentar';btn.disabled=false;btn.style.background='#c62828';}
+      toast('Error guardando: '+e.message,'var(--rojo)');
+    }
+  } else {
+    if(btn){btn.innerHTML='✅ Guardado local';btn.style.background='#388e3c';}
+    toast('💾 Guardado localmente (sin Firebase)');
+    _pendingChanges={};
+    setTimeout(()=>{
+      if(btn){btn.style.display='none';btn.style.background='#1f6b50';btn.innerHTML='💾 Guardar cambios';btn.disabled=false;}
+    },2000);
+  }
 }
 
 function delItem(cat,name){
@@ -1422,8 +1465,13 @@ async function initFirebase(){
 
     // Real-time listeners
     let _fbRenderTimer=null;
+    let _lastFbUpdate=0;
     fireRef.on('value',s=>{
       if(!s.exists())return;
+      const now=Date.now();
+      // Si hay cambios pendientes locales recientes (<3s), no sobreescribir
+      if(Object.keys(_pendingChanges).length>0&&now-_lastFbUpdate<3000)return;
+      _lastFbUpdate=now;
       const raw=s.val();
       try{
         const refInv=initInv();
@@ -1433,7 +1481,6 @@ async function initFirebase(){
       lsSet(LSK,inv);
       updateAlertBanner();
       updateSync('green','Sync · '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}));
-      // Debounce render to avoid multiple rapid re-renders
       clearTimeout(_fbRenderTimer);
       _fbRenderTimer=setTimeout(()=>{
         if(curScreen==='inv')renderInv();
@@ -1513,10 +1560,20 @@ function pushInv(changedCat, changedItem){
 
 async function syncNow(){
   if(!fireRef){
-    // Sin Firebase: solo re-renderizar con datos locales
     renderAll();
-    toast('📱 Datos locales actualizados');
+    toast('📱 Sin Firebase — datos locales');
     return;
+  }
+  // Si hay cambios pendientes, preguntar
+  if(Object.keys(_pendingChanges).length>0){
+    if(!confirm('Tienes cambios sin guardar. ¿Guardar primero antes de sincronizar?')){
+      _pendingChanges={};
+      const btn=document.getElementById('floatSaveBtn');
+      if(btn)btn.style.display='none';
+    } else {
+      await guardarCambios();
+      return;
+    }
   }
   updateSync('yellow','Sincronizando...');
   try{
@@ -1529,13 +1586,16 @@ async function syncNow(){
         inv=restored&&Object.keys(restored).length>0?restored:raw;
       }catch(e){inv=raw;}
       lsSet(LSK,inv);
+      _pendingChanges={};
+      const btn=document.getElementById('floatSaveBtn');
+      if(btn)btn.style.display='none';
       renderAll();
       updateSync('green','Sync · '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}));
-      toast('✅ Sincronizado desde Firebase');
+      toast('✅ Inventario actualizado desde Firebase');
     }
   }catch(e){
     updateSync('red','Error');
-    toast('❌ Error de sync: '+e.message,'var(--rojo)');
+    toast('❌ Error: '+e.message,'var(--rojo)');
   }
 }
 
