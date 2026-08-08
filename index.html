@@ -364,6 +364,23 @@ input,select,textarea{font-family:inherit;}
 .estado-regular{background:#fff8e1;color:#f57f17;}
 .estado-danado{background:#ffebee;color:#c62828;}
 
+
+/* ── PRODUCCIÓN Y VENCIMIENTOS ── */
+.prod-card{background:#fff;border:1.5px solid var(--linea);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.prod-card.vence-hoy{border-color:var(--rojo);background:#fff5f5;}
+.prod-card.vence-manana{border-color:var(--amarillo);background:#fffde7;}
+.prod-card.vencido{border-color:#8b0000;background:#ffebee;opacity:.85;}
+.prod-card.ok{border-color:var(--menta3);}
+.prod-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.prod-dot.rojo{background:var(--rojo);}.prod-dot.amarillo{background:var(--amarillo);}
+.prod-dot.verde{background:var(--menta);}.prod-dot.gris{background:#8b0000;}
+.prod-info{flex:1;}
+.prod-nombre{font-weight:600;font-size:.88rem;color:var(--texto);}
+.prod-meta{font-size:.73rem;color:var(--muted);margin-top:2px;}
+.prod-badge{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;}
+.prod-badge.vencido{background:#8b0000;color:#fff;}.prod-badge.hoy{background:var(--rojo);color:#fff;}
+.prod-badge.manana{background:var(--amarillo);color:#1a3d2e;}.prod-badge.ok{background:var(--menta-light);color:var(--menta-deep);}
+
 </style>
 </head>
 <body>
@@ -450,6 +467,8 @@ input,select,textarea{font-family:inherit;}
     <div id="userList"></div>
   </div>
 
+  <!-- PRODUCCIÓN -->
+  <div class="screen" id="screen-prod"><div id="prodContainer"></div></div>
   <!-- FORMATOS OPERATIVOS -->
   <div class="screen" id="screen-fmt">
     <div id="fmtContainer"></div>
@@ -528,6 +547,28 @@ input,select,textarea{font-family:inherit;}
 
 
 
+<!-- MODAL NUEVA PRODUCCIÓN -->
+<div class="modal-ov" id="npModal" onclick="if(event.target===this)document.getElementById('npModal').classList.remove('open')">
+  <div class="modal-sh">
+    <div class="mhandle"></div>
+    <h3>🏷️ Registrar producto elaborado</h3>
+    <div class="ff"><label>Nombre del producto</label>
+      <input type="text" id="npNombre" placeholder="Ej: Cheesecake de frutos rojos">
+      <div id="npVidaHint" style="font-size:.72rem;color:var(--menta-deep);margin-top:4px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="ff"><label>Cantidad</label><input type="number" id="npCant" value="1" min="1"></div>
+      <div class="ff"><label>Unidad</label><select id="npUnidad"><option value="und">und</option><option value="porciones">porciones</option><option value="kg">kg</option><option value="l">litros</option><option value="bandejas">bandejas</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="ff"><label>Fecha elaboración</label><input type="date" id="npElab"></div>
+      <div class="ff"><label>Fecha vencimiento</label><input type="date" id="npVence"></div>
+    </div>
+    <div class="ff"><label>Nota (defecto, observación)</label><input type="text" id="npNota" placeholder="Ej: Salió con textura irregular, usar primero"></div>
+    <button class="btn-full dorado" onclick="guardarProd()">💾 Registrar</button>
+    <button class="btn-full outline" style="margin-top:8px;" onclick="document.getElementById('npModal').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
 <!-- MODAL FORMATOS -->
 <div class="fmodal-ov" id="fmtModal" onclick="if(event.target===this)closeFmtModal()">
   <div class="fmodal-sh">
@@ -667,6 +708,7 @@ const LSV='sessanio_v4_ventas';
 const LSR='sessanio_v4_recipes';
 const LSMOB='sessanio_v4_mob';
 const LSFMT='sessanio_v4_fmt';
+const LSPROD='sessanio_v4_prod';
 
 let cfg=lsGet(LSC)||{};
 let inv={};         // inventario materia prima
@@ -675,7 +717,8 @@ let users={};       // usuarios
 let sesion=null;    // usuario logueado
 let cart={};        // {nombre:{qty,price}}
 let recipes={};     // {nombre_producto:{ingredientes:[{ing,qty,unit}]}}
-let fireApp=null,fireDb=null,fireRef=null,fireUsersRef=null,fireVentasRef=null,fireRecRef=null,fireMobRef=null,fireFmtRef=null;
+let fireApp=null,fireDb=null,fireRef=null,fireUsersRef=null,fireVentasRef=null,fireRecRef=null,fireMobRef=null,fireFmtRef=null,fireProdRef=null;
+let produccion=[];
 let mobiliario={};
 let formatos=[];
 let collapsed={};
@@ -727,6 +770,7 @@ function initApp(){
   recipes=lsGet(LSR)||{};
   mobiliario=lsGet(LSMOB)||initMob();
   formatos=lsGet(LSFMT)||[];
+  produccion=lsGet(LSPROD)||[];
   // Si el inventario existe pero no tiene categorías del catálogo, reinicializar
   const invCats=Object.keys(inv);
   if(invCats.length===0||(CATALOG&&CATALOG.length>invCats.length)){
@@ -775,6 +819,7 @@ const SCREENS={
   alertas:{label:'Alertas',ic:'🔔',roles:['admin','cocina','caja']},
   rep:{label:'Reportes',ic:'📊',roles:['admin']},
   users:{label:'Usuarios',ic:'👥',roles:['admin']},
+  prod:{label:'Producción',ic:'🏷️',roles:['admin','cocina']},
   fmt:{label:'Formatos',ic:'📄',roles:['admin','caja','cocina']},
   mob:{label:'Activos',ic:'🍳',roles:['admin']},
 };
@@ -808,6 +853,7 @@ function setScreen(s){
   if(s==='alertas')renderAlertas();
   if(s==='rep')renderRep();
   if(s==='users')renderUsers();
+  if(s==='prod')renderProduccion();
   if(s==='fmt')renderFormatos();
   if(s==='mob')renderMobiliario();
 }
@@ -875,7 +921,7 @@ function updQty(inp){
   inv[cat][name]._ts=Date.now();
   updateAlertBanner();
   clearTimeout(inp._t);
-  inp._t=setTimeout(()=>{pushInv();renderInv();},900);
+  inp._t=setTimeout(()=>{pushInv(cat,name);renderInv();},900);
 }
 
 function delItem(cat,name){
@@ -1189,9 +1235,19 @@ function renderAlertas(){
   }).join('');
 }
 
+function stockPct(v){
+  if(!v||!v.maxO||v.maxO===0)return 100;
+  return (v.qty/v.maxO)*100;
+}
+function isLow(v){ return v.qty<=v.min || stockPct(v)<=25; }
+function isCrit(v){ return v.qty===0 || stockPct(v)<=10; }
+
 function updateAlertBanner(){
   let n=0;
-  CATALOG.forEach(c=>{const cd=inv[c.cat]||{};Object.values(cd).forEach(v=>{if(v.qty<=v.min)n++;});});
+  CATALOG.forEach(c=>{const cd=inv[c.cat]||{};Object.values(cd).forEach(v=>{if(isLow(v))n++;});});
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const manana=new Date(hoy);manana.setDate(manana.getDate()+1);
+  produccion.forEach(p=>{if(!p.vence)return;const vd=new Date(p.vence);vd.setHours(0,0,0,0);if(vd<=manana)n++;});
   const b=document.getElementById('alertBanner');
   document.getElementById('alertCnt').textContent=n;
   b.classList.toggle('show',n>0);
@@ -1301,6 +1357,7 @@ async function initFirebase(){
     fireRecRef=fireDb.ref('recipes');
     fireMobRef=fireDb.ref('mobiliario');
     fireFmtRef=fireDb.ref('formatos');
+    fireProdRef=fireDb.ref('produccion');
 
     // Sync inventario
     const snap=await fireRef.once('value');
@@ -1326,6 +1383,9 @@ async function initFirebase(){
     const fsnap=await fireFmtRef.once('value');
     if(fsnap.exists()){formatos=Object.values(fsnap.val());lsSet(LSFMT,formatos);}
     fireFmtRef.on('value',s=>{if(s.exists()){formatos=Object.values(s.val());lsSet(LSFMT,formatos);if(curScreen==='fmt')renderFormatos();}});
+    const psnap=await fireProdRef.once('value');
+    if(psnap.exists()){produccion=Object.values(psnap.val());lsSet(LSPROD,produccion);}
+    fireProdRef.on('value',s=>{if(s.exists()){produccion=Object.values(s.val());lsSet(LSPROD,produccion);updateAlertBanner();if(curScreen==='prod')renderProduccion();}});
     // Sync recipes
     const rsnap=await fireRecRef.once('value');
     if(rsnap.exists()){recipes=rsnap.val();lsSet(LSR,recipes);}
@@ -1397,20 +1457,38 @@ function restoreFromFb(obj,ref){
   });
   return result;
 }
-function pushInv(){
+function pushInv(changedCat, changedItem){
   lsSet(LSK,inv);
   if(fireRef){
-    const clean=sanitizeForFb(inv);
-    fireRef.set(clean).catch(e=>console.error('Firebase push error:',e));
+    // Si se especifica qué cambió, solo actualizar ese campo (evita conflictos)
+    if(changedCat && changedItem && inv[changedCat] && inv[changedCat][changedItem]!==undefined){
+      const catKey=fbKey(changedCat);
+      const itemKey=fbKey(changedItem);
+      const val=inv[changedCat][changedItem];
+      const update={};
+      update[catKey+'/'+itemKey]=sanitizeForFb(val);
+      fireRef.update(update).catch(e=>console.error('Firebase update error:',e));
+    } else {
+      // Fallback: set completo (para borrar/agregar items)
+      fireRef.set(sanitizeForFb(inv)).catch(e=>console.error('Firebase set error:',e));
+    }
   }
 }
 
 async function syncNow(){
   if(!fireRef){toast('Sin Firebase. Datos guardados localmente.');return;}
-  toast('↑↓ Sincronizando...');
-  const s=await fireRef.once('value');
-  if(s.exists()){inv=s.val();lsSet(LSK,inv);renderAll();}
-  toast('✅ Sincronizado');
+  toast('↑↓ Sincronizando con Firebase...');
+  try{
+    const s=await fireRef.once('value');
+    if(s.exists()){
+      const raw=s.val();
+      const refInv=initInv();
+      inv=restoreFromFb(raw,refInv)||raw;
+      lsSet(LSK,inv);
+      renderAll();
+      toast('✅ Sincronizado · '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}));
+    }
+  }catch(e){toast('Error de sync: '+e.message,'var(--rojo)');}
 }
 
 function usarOffline(){cfg.fbUrl='';cfg.fbKey='';lsSet(LSC,cfg);updateSync('yellow','Offline');closeFbModal();toast('📱 Modo offline activo');}
@@ -1457,6 +1535,7 @@ function renderAll(){
   if(curScreen==='alertas')renderAlertas();
   if(curScreen==='rep')renderRep();
   if(curScreen==='users')renderUsers();
+  if(curScreen==='prod')renderProduccion();
   if(curScreen==='fmt')renderFormatos();
   if(curScreen==='mob')renderMobiliario();
 }
@@ -1478,6 +1557,78 @@ document.getElementById('searchInp').addEventListener('input',function(){searchQ
 /* ══════════════════════════════════════════
    ARRANCAR
 ══════════════════════════════════════════ */
+
+
+/* PRODUCCIÓN Y VENCIMIENTOS */
+const VIDA_UTIL={'Cheesecake':4,'Torta':4,'Bizcocho':3,'Tiramisú':3,'Postre':2,'Panna Cotta':3,'Crema pastelera':2,'Crema agria':3,'Crema de manzana':3,'Salsa':3,'Granola':14,'Cornetti':1,'Pan':2,'Pancake':1,'Crepe':1,'Leche':3,'Queso':5,'Yogur':5,'Crema de leche':3,'Huevo':14,'Fruta':3,'Verdura':2,'Carne':2,'Pollo':2,'Tocineta':4};
+function vidaUtil(nombre){for(const[k,v]of Object.entries(VIDA_UTIL)){if(nombre.toLowerCase().includes(k.toLowerCase()))return v;}return 3;}
+function estadoVencimiento(p){const hoy=new Date();hoy.setHours(0,0,0,0);const vd=new Date(p.vence);vd.setHours(0,0,0,0);const diff=Math.round((vd-hoy)/(1000*60*60*24));if(diff<0)return{label:'VENCIDO',clase:'vencido',dot:'gris',diff};if(diff===0)return{label:'Vence HOY',clase:'vence-hoy',dot:'rojo',diff};if(diff===1)return{label:'Vence mañana',clase:'vence-manana',dot:'amarillo',diff};return{label:diff+' días',clase:'ok',dot:'verde',diff};}
+function pushProduccion(){lsSet(LSPROD,produccion);if(fireProdRef){const obj={};produccion.forEach(p=>obj[p.id]=p);fireProdRef.set(sanitizeForFb(obj)).catch(()=>{}); }}
+function renderProduccion(){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const manana=new Date(hoy);manana.setDate(manana.getDate()+1);
+  const vencidos=produccion.filter(p=>{const d=new Date(p.vence);d.setHours(0,0,0,0);return d<hoy;});
+  const proximos=produccion.filter(p=>{const d=new Date(p.vence);d.setHours(0,0,0,0);return d>=hoy&&d<=manana;});
+  const ok=produccion.filter(p=>{const d=new Date(p.vence);d.setHours(0,0,0,0);return d>manana;});
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-family:Cormorant Garamond,serif;font-size:1.1rem;font-style:italic;">Producción y vencimientos</div><button class="btn btn-dorado btn-sm" onclick="abrirNuevaProd()">+ Registrar</button></div>';
+  if(vencidos.length){html+='<div style="font-weight:700;font-size:.82rem;color:var(--rojo);margin-bottom:6px;">🚨 VENCIDOS — retirar inmediatamente</div>';html+=vencidos.map(p=>prodCard(p)).join('');}
+  if(proximos.length){html+='<div style="font-weight:700;font-size:.82rem;color:var(--amarillo);margin:10px 0 6px;">⚠️ Vencen hoy o mañana</div>';html+=proximos.map(p=>prodCard(p)).join('');}
+  if(ok.length){html+='<div style="font-weight:700;font-size:.82rem;color:var(--menta-deep);margin:10px 0 6px;">✅ En buen estado</div>';html+=ok.map(p=>prodCard(p)).join('');}
+  if(!produccion.length)html+='<div style="text-align:center;padding:40px;color:var(--muted);">🏷️<br>No hay productos registrados.<br><span style="font-size:.76rem;">Toca + Registrar para agregar un producto elaborado hoy.</span></div>';
+  document.getElementById('prodContainer').innerHTML=html;
+}
+function prodCard(p){
+  const est=estadoVencimiento(p);
+  const elab=new Date(p.elaborado).toLocaleDateString('es-CO');
+  const vence=new Date(p.vence).toLocaleDateString('es-CO');
+  const bc=est.clase==='ok'?'ok':est.clase==='vence-hoy'?'hoy':est.clase==='vence-manana'?'manana':'vencido';
+  const canDel=sesion.rol==='admin'||sesion.rol==='cocina';
+  const nota=p.nota?`<div class="prod-meta" style="color:var(--rojo);font-style:italic;">${p.nota}</div>`:'';
+  const btn=canDel?`<button onclick="eliminarProd('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:.9rem;cursor:pointer;margin-left:4px;">✕</button>`:'';
+  return `<div class="prod-card ${est.clase}">
+    <div class="prod-dot ${est.dot}"></div>
+    <div class="prod-info">
+      <div class="prod-nombre">${p.nombre} <span style="font-size:.72rem;color:var(--muted);font-weight:400;">${p.cantidad} ${p.unidad}</span></div>
+      <div class="prod-meta">Elaborado: ${elab} · Vence: ${vence} · Por: ${p.usuario||'—'}</div>
+      ${nota}
+    </div>
+    <span class="prod-badge ${bc}">${est.label}</span>${btn}
+  </div>`;
+}
+function abrirNuevaProd(){
+  const hoy=new Date().toISOString().slice(0,10);
+  document.getElementById('npNombre').value='';
+  document.getElementById('npCant').value='1';
+  document.getElementById('npUnidad').value='und';
+  document.getElementById('npElab').value=hoy;
+  document.getElementById('npVence').value='';
+  document.getElementById('npNota').value='';
+  document.getElementById('npVidaHint').textContent='';
+  document.getElementById('npNombre').oninput=function(){
+    const dias=vidaUtil(this.value);
+    const v=new Date();v.setDate(v.getDate()+dias);
+    document.getElementById('npVence').value=v.toISOString().slice(0,10);
+    document.getElementById('npVidaHint').textContent='Vida útil estimada: '+dias+' días';
+  };
+  document.getElementById('npModal').classList.add('open');
+}
+function guardarProd(){
+  const nombre=document.getElementById('npNombre').value.trim();
+  const cant=document.getElementById('npCant').value;
+  const unidad=document.getElementById('npUnidad').value;
+  const elab=document.getElementById('npElab').value;
+  const vence=document.getElementById('npVence').value;
+  const nota=document.getElementById('npNota').value.trim();
+  if(!nombre||!vence){toast('Completa nombre y fecha de vencimiento','var(--rojo)');return;}
+  const p={id:'p'+Date.now(),nombre,cantidad:cant,unidad,elaborado:elab,vence,nota,usuario:sesion.username,ts:Date.now()};
+  produccion.unshift(p);
+  if(produccion.length>200)produccion=produccion.slice(0,200);
+  pushProduccion();
+  document.getElementById('npModal').classList.remove('open');
+  renderProduccion();updateAlertBanner();
+  toast('Registrado: '+nombre+' · Vence '+new Date(vence).toLocaleDateString('es-CO'));
+}
+function eliminarProd(id){if(!confirm('Retirar este producto?'))return;produccion=produccion.filter(p=>p.id!==id);pushProduccion();renderProduccion();updateAlertBanner();}
 
 /* ══════════════════════════════════════════
    MOBILIARIO Y UTENSILIOS
@@ -1757,14 +1908,32 @@ function buildFormHTML(tipo){
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
     <div class="frow"><label>Responsable apertura</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
     <div class="fsec">Limpieza y orden</div>
-    ${['Pisos y mesas limpios','Baños limpios y dotados','Zona cocina organizada','Barra limpia y organizada','Vitrina postres limpia'].map((t,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+    ${['Pisos y mesas limpios','Baños limpios y dotados con papel','Zona cocina organizada y despejada','Barra limpia y organizada','Vitrina postres limpia y encendida','Pasillo cocina-salón despejado'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
       <input type="checkbox" id="f_ap${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
       <label for="f_ap${i}" style="font-size:.85rem;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">Equipos y mise en place</div>
-    ${['Café molido y listo','Leche puesta','Masas de cornetti listas','Postres en vitrina','Inventario revisado','Caja con base inicial','Datáfono funcionando','Menús en mesas'].map((t,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+    <div class="fsec">🪑 Mesas y mobiliario</div>
+    ${['Todas las mesas niveladas sin bamboleo (verificar niveladores)','Sillas y taburetes sin daños ni roturas','Mesas alineadas con centros decorativos','Sofás y cojines limpios','Plantas en buen estado','Zona de entrada limpia y sin obstáculos'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
+      <input type="checkbox" id="f_mob${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_mob${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">🥗 Frescura de productos</div>
+    ${['Salsas y cremas rotuladas con fecha','Postres en vitrina con precio y fecha','Cornettis del día horneados y listos','Frutas y verduras revisadas (descartar deterioradas)','Bebidas frías a temperatura correcta','Café molido del día (no usar de días anteriores)','Productos barra rotulados con fecha de apertura','Revisar módulo Producción y retirar vencidos','Verificar PEPS — usar primero los de fecha más próxima'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
+      <input type="checkbox" id="f_fresc${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_fresc${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">⚡ Equipos eléctricos y conexiones</div>
+    ${['Máquina de café encendida y caliente','Molino funcionando','Licuadora operativa','Batidora operativa','Neveras encendidas (T° revisada)','Congelador encendido','Luces del local funcionando','Datáfono / caja encendidos','Tomas eléctricas sin daños','Extensiones sin sobrecarga'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
+      <input type="checkbox" id="f_elec${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_elec${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">Mise en place y operación</div>
+    ${['Café molido y listo','Leche puesta','Masas de cornetti listas','Postres en vitrina','Inventario revisado y alertas atendidas','Caja con base inicial','Datáfono funcionando','Menús en mesas','Uniforme completo del equipo'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
       <input type="checkbox" id="f_eq${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
       <label for="f_eq${i}" style="font-size:.85rem;">${t}</label>
     </div>`).join('')}
@@ -1775,14 +1944,20 @@ function buildFormHTML(tipo){
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
     <div class="frow"><label>Responsable cierre</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
     <div class="fsec">Limpieza profunda</div>
-    ${['Pisos trapeados con desinfectante','Mesas y sillas limpias','Baños limpios','Cocina desengrasada','Neveras organizadas','Barra limpia','Cafetera limpia','Menaje lavado y guardado'].map((t,i)=>`
+    ${['Pisos trapeados con desinfectante','Mesas y sillas limpias','Baños limpios y dotados para el día siguiente','Cocina desengrasada','Neveras organizadas y productos rotulados','Barra limpia','Cafetera limpia y purgada','Menaje lavado y guardado','Pasillo y zona de tránsito despejados','Vitrina de postres organizada para el día siguiente'].map((t,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
       <input type="checkbox" id="f_ci${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
       <label for="f_ci${i}" style="font-size:.85rem;">${t}</label>
     </div>`).join('')}
-    <div class="fsec">Cierre seguro</div>
-    ${['Caja cuadrada y entregada','Puertas y ventanas aseguradas','Gas cerrado','Equipos apagados','Luces apagadas','Alarma activada'].map((t,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta);">
+    <div class="fsec">⚡ Apagado de equipos eléctricos</div>
+    ${['Máquina de café apagada y limpia','Molino apagado','Licuadora y batidora apagadas','Luces del salón apagadas','Luces de cocina apagadas','Equipos de audio apagados','Extensiones sin carga innecesaria','Neveras quedaron encendidas ✓','Congelador quedó encendido ✓'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
+      <input type="checkbox" id="f_apag${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
+      <label for="f_apag${i}" style="font-size:.85rem;">${t}</label>
+    </div>`).join('')}
+    <div class="fsec">Cierre y seguridad</div>
+    ${['Caja cuadrada y entregada','Puertas y ventanas aseguradas','Gas cerrado','Alarma activada','Llaves entregadas al responsable'].map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--menta2);">
       <input type="checkbox" id="f_sg${i}" style="width:18px;height:18px;accent-color:var(--dorado);">
       <label for="f_sg${i}" style="font-size:.85rem;">${t}</label>
     </div>`).join('')}
