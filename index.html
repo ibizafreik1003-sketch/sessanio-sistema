@@ -813,6 +813,14 @@ function initApp(){
   mobiliario=lsGet(LSMOB)||initMob();
   formatos=lsGet(LSFMT)||[];
   produccion=lsGet(LSPROD)||[];
+  // Cargar menú personalizado si existe (precios editados, productos nuevos)
+  const savedMenu=lsGet('sessanio_v4_menu');
+  if(savedMenu&&typeof savedMenu==='object'){
+    Object.keys(savedMenu).forEach(cat=>{
+      if(MENU[cat]!==undefined)MENU[cat]=savedMenu[cat];
+      else MENU[cat]=savedMenu[cat];
+    });
+  }
   // Si el inventario existe pero no tiene categorías del catálogo, reinicializar
   const invCats=Object.keys(inv);
   if(invCats.length===0||(CATALOG&&CATALOG.length>invCats.length)){
@@ -906,10 +914,18 @@ function setScreen(s){
 function renderInv(){
   const term=searchQ.toLowerCase();
   let html='';
-  CATALOG.forEach(cat=>{
+  // Todas las categorías del catálogo + cualquier categoría extra en inv
+  const catNames=CATALOG.map(c=>c.cat);
+  Object.keys(inv).forEach(k=>{if(!catNames.includes(k))catNames.push(k);});
+  const catList=catNames.map(n=>{
+    const found=CATALOG.find(c=>c.cat===n);
+    return found||{cat:n,items:[]};
+  });
+  catList.forEach(cat=>{
     const cd=inv[cat.cat]||{};
     const items=Object.entries(cd).filter(([n,v])=>v&&(!term||n.toLowerCase().includes(term)));
     if(!items.length&&term)return;
+    if(!items.length&&!sesion)return;
     const lowN=items.filter(([,v])=>v.qty<=v.min).length;
     const coll=collapsed[cat.cat];
     html+=`<div class="cat-sec">
@@ -1009,7 +1025,8 @@ async function guardarCambios(){
   lsSet(LSK,inv);
   if(fireRef){
     try{
-      const clean=sanitizeForFb(JSON.parse(JSON.stringify(inv)));
+      const invCopy=JSON.parse(JSON.stringify(inv));
+      const clean=sanitizeForFb(invCopy);
       await fireRef.set(clean);
       if(btn){btn.innerHTML='✅ Guardado';btn.style.background='#388e3c';}
       toast('✅ Inventario guardado y sincronizado');
@@ -1092,15 +1109,15 @@ function addItem(cat,btn){
   if(!inv[cat])inv[cat]={};
   inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
   lsSet(LSK,inv);
-  // Guardar inmediatamente en Firebase
+  collapsed[cat]=false; // expandir la categoría para que el producto sea visible
   if(fireRef){
     fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv))))
-      .then(()=>toast('✅ '+name+' agregado y guardado'))
-      .catch(()=>toast('✅ '+name+' agregado (solo local)'));
+      .then(()=>{toast('✅ '+name+' agregado y guardado');renderInv();})
+      .catch(()=>{toast('✅ '+name+' agregado (solo local)');renderInv();});
   } else {
     toast('✅ '+name+' agregado');
+    renderInv();
   }
-  renderInv();
 }
 
 /* ══════════════════════════════════════════
@@ -1582,6 +1599,25 @@ async function initFirebase(){
     fireMobRef=fireDb.ref('mobiliario');
     fireFmtRef=fireDb.ref('formatos');
     fireProdRef=fireDb.ref('produccion');
+    const fbMenuRef=fireDb.ref('menu');
+    const msnap2=await fbMenuRef.once('value');
+    if(msnap2.exists()){
+      const mdata=msnap2.val();
+      if(mdata&&typeof mdata==='object'){
+        Object.keys(mdata).forEach(cat=>{MENU[cat]=mdata[cat];});
+        lsSet('sessanio_v4_menu',MENU);
+      }
+    }
+    fbMenuRef.on('value',s=>{
+      if(!s.exists())return;
+      const mdata=s.val();
+      if(mdata&&typeof mdata==='object'){
+        Object.keys(mdata).forEach(cat=>{MENU[cat]=mdata[cat];});
+        lsSet('sessanio_v4_menu',MENU);
+        if(curScreen==='menu')renderMenu();
+        if(curScreen==='pos')renderPOS();
+      }
+    });
 
     // Sync inventario
     const snap=await fireRef.once('value');
