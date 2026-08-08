@@ -1444,8 +1444,7 @@ function updateMenuPrice(cat,name,val){
     // Guardar en Firebase/localStorage
     lsSet('sessanio_v4_menu',MENU);
     if(fireRef){
-      const menuClean=sanitizeForFb(JSON.parse(JSON.stringify(MENU)));
-      firebase.database(fireApp).ref('menu').set(menuClean).catch(()=>{});
+      firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
     }
     toast('💰 Precio actualizado: '+fmtCOP(p.price));
   }
@@ -1456,7 +1455,7 @@ function deleteMenuProduct(cat,name){
   MENU[cat]=MENU[cat].filter(p=>p.name!==name);
   lsSet('sessanio_v4_menu',MENU);
   if(fireRef){
-    firebase.database(fireApp).ref('menu').set(sanitizeForFb(JSON.parse(JSON.stringify(MENU)))).catch(()=>{});
+    firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
   }
   renderMenu();toast('🗑 '+name+' eliminado del menú');
 }
@@ -1469,7 +1468,7 @@ function addMenuProduct(){
   MENU[cat].push({name,price,recipe:[]});
   lsSet('sessanio_v4_menu',MENU);
   if(fireRef){
-    firebase.database(fireApp).ref('menu').set(sanitizeForFb(JSON.parse(JSON.stringify(MENU)))).catch(()=>{});
+    firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
   }
   document.getElementById('addProdModal').classList.remove('open');
   renderMenu();toast('✅ '+name+' agregado al menú');
@@ -1600,20 +1599,40 @@ async function initFirebase(){
     fireFmtRef=fireDb.ref('formatos');
     fireProdRef=fireDb.ref('produccion');
     const fbMenuRef=fireDb.ref('menu');
+    let _menuNeedsRepair=false;
+    // Repara categorías que quedaron guardadas como objeto {i0:.., i1:..} en vez de array
+    // (bug de versiones anteriores que usaban sanitizeForFb sobre MENU)
+    function toArraySafe(val){
+      if(Array.isArray(val))return val;
+      if(val&&typeof val==='object'){
+        _menuNeedsRepair=true;
+        return Object.keys(val).sort((a,b)=>{
+          const na=parseInt(a.replace('i',''),10),nb=parseInt(b.replace('i',''),10);
+          return (isNaN(na)?0:na)-(isNaN(nb)?0:nb);
+        }).map(k=>val[k]);
+      }
+      return [];
+    }
     const msnap2=await fbMenuRef.once('value');
     if(msnap2.exists()){
       const mdata=msnap2.val();
       if(mdata&&typeof mdata==='object'){
-        Object.keys(mdata).forEach(cat=>{MENU[cat]=mdata[cat];});
+        Object.keys(mdata).forEach(cat=>{MENU[cat]=toArraySafe(mdata[cat]);});
         lsSet('sessanio_v4_menu',MENU);
+        if(_menuNeedsRepair){
+          // Vuelve a guardar ya reparado como array real
+          fbMenuRef.set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
+        }
       }
     }
     fbMenuRef.on('value',s=>{
       if(!s.exists())return;
       const mdata=s.val();
       if(mdata&&typeof mdata==='object'){
-        Object.keys(mdata).forEach(cat=>{MENU[cat]=mdata[cat];});
+        _menuNeedsRepair=false;
+        Object.keys(mdata).forEach(cat=>{MENU[cat]=toArraySafe(mdata[cat]);});
         lsSet('sessanio_v4_menu',MENU);
+        if(_menuNeedsRepair)fbMenuRef.set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
         if(curScreen==='menu')renderMenu();
         if(curScreen==='pos')renderPOS();
       }
@@ -1713,20 +1732,36 @@ function sanitizeForFb(obj){
   return clean;
 }
 function restoreFromFb(obj,ref){
-  // Restore sanitized keys back using catalog as reference
+  // Restore sanitized keys back using catalog as reference, WITHOUT descartar
+  // productos que el usuario agregó y que no existen en el catálogo original.
   if(!obj)return obj;
   const result={};
-  Object.keys(ref).forEach(cat=>{
-    const catKey=cat.replace(/[.#$/\[\]]/g,'_');
-    if(obj[catKey]){
-      result[cat]={};
-      Object.keys(ref[cat]).forEach(item=>{
-        const itemKey=item.replace(/[.#$/\[\]]/g,'_');
-        if(obj[catKey][itemKey])result[cat][item]=obj[catKey][itemKey];
-        else result[cat][item]=ref[cat][item];
-      });
-    }
+  // Mapa inverso categoría-saneada -> nombre real, usando el catálogo como referencia
+  const catLookup={};
+  Object.keys(ref).forEach(cat=>{catLookup[fbKey(cat)]=cat;});
+
+  Object.keys(obj).forEach(catKey=>{
+    const catName=catLookup[catKey]||catKey; // si no hay match, se usa el key tal cual (ya es el nombre real en la mayoría de los casos)
+    const refCat=ref[catName]||{};
+    const itemLookup={};
+    Object.keys(refCat).forEach(item=>{itemLookup[fbKey(item)]=item;});
+    if(!result[catName])result[catName]={};
+    const rawCat=obj[catKey]||{};
+    Object.keys(rawCat).forEach(itemKey=>{
+      const itemName=itemLookup[itemKey]||itemKey; // producto nuevo: se conserva con su nombre
+      result[catName][itemName]=rawCat[itemKey];
+    });
   });
+
+  // Rellenar con productos del catálogo base que aún no existan en Firebase
+  // (por ejemplo si se agregó un producto nuevo al CATALOG en una actualización del código)
+  Object.keys(ref).forEach(cat=>{
+    if(!result[cat])result[cat]={};
+    Object.keys(ref[cat]).forEach(item=>{
+      if(result[cat][item]===undefined)result[cat][item]=ref[cat][item];
+    });
+  });
+
   return result;
 }
 function pushInv(changedCat, changedItem){
