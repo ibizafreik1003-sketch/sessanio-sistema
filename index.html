@@ -590,7 +590,8 @@ input,select,textarea{font-family:inherit;}
   <div class="modal-sh">
     <div class="mhandle"></div>
     <h3>🏷️ Registrar producto elaborado</h3>
-    <div class="ff"><label>Producto elaborado</label>
+    <div class="ff"><label>Producto elaborado hoy 🍳</label>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:5px;">Para cornettis: registra cuántos panes salieron del horno. El relleno se descuenta al vender.</div>
       <select id="npNombreSelect" onchange="onProdSelect(this)">
         <option value="">-- Seleccionar producto del menú --</option>
         <option value="__custom__">✏️ Escribir nombre personalizado...</option>
@@ -783,16 +784,55 @@ function loadUsers(){
   };
   lsSet(LSU,users);
 }
-function saveUsers(){lsSet(LSU,users);if(fireUsersRef)fireUsersRef.set(users);}
+function saveUsers(cb){
+  lsSet(LSU,users);
+  if(fireUsersRef){
+    _userSaveTs=Date.now();
+    fireUsersRef.set(users)
+      .then(()=>{if(cb)cb();})
+      .catch(()=>{}); // Guardar usuario: fallo silencioso, quedó en localStorage
+  } else {
+    if(cb)cb();
+  }
+}
 
 /* ══════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════ */
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('loginUser').value.trim().toLowerCase();
   const p=document.getElementById('loginPass').value;
-  if(!users[u]){document.getElementById('loginErr').textContent='Usuario no encontrado.';return;}
-  if(users[u].pass!==p){document.getElementById('loginErr').textContent='Contraseña incorrecta.';return;}
+  const errEl=document.getElementById('loginErr');
+  const btn=document.querySelector('.btn-login');
+  errEl.textContent='Verificando...';
+  if(btn)btn.disabled=true;
+  // SIEMPRE intentar cargar usuarios frescos de Firebase primero
+  try{
+    const fbCfg=lsGet(LSC);
+    if(fbCfg&&fbCfg.fbUrl&&fbCfg.fbApiKey){
+      let db=fireDb;
+      if(!db){
+        try{
+          const app=firebase.initializeApp({apiKey:fbCfg.fbApiKey,databaseURL:fbCfg.fbUrl},'sess-prelogin-'+Date.now());
+          db=firebase.database(app);
+        }catch(e2){
+          // App ya existe, intentar obtenerla
+          try{db=firebase.database(firebase.app('sess-prelogin'));}catch(e3){}
+        }
+      }
+      const snap=await db.ref('users').once('value');
+      if(snap.exists()){
+        const fbUsers=snap.val();
+        // Merge: Firebase tiene prioridad sobre local
+        users=Object.assign({},users,fbUsers);
+        lsSet(LSU,users);
+      }
+    }
+  }catch(e){ /* sin internet: usar locales */ }
+  if(btn)btn.disabled=false;
+  if(!users[u]){errEl.textContent='Usuario no encontrado.';return;}
+  if(users[u].pass!==p){errEl.textContent='Contraseña incorrecta.';return;}
+  errEl.textContent='';
   sesion={username:u,...users[u]};
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
@@ -1036,7 +1076,8 @@ async function guardarCambios(){
       },2000);
     }catch(e){
       if(btn){btn.innerHTML='❌ Error — reintentar';btn.disabled=false;btn.style.background='#c62828';}
-      toast('Error guardando: '+e.message,'var(--rojo)');
+      lsSet(LSK,inv);
+      if(btn){btn.style.display='none';btn.style.background='#1f6b50';btn.innerHTML='💾 Guardar cambios';btn.disabled=false;}
     }
   } else {
     if(btn){btn.innerHTML='✅ Guardado local';btn.style.background='#388e3c';}
@@ -1399,9 +1440,12 @@ function cobrar(){
 ══════════════════════════════════════════ */
 function renderAlertas(){
   const low=[];
-  CATALOG.forEach(c=>{
-    const cd=inv[c.cat]||{};
-    Object.entries(cd).forEach(([name,v])=>{if(v.qty<=v.min)low.push({cat:c.cat,name,v});});
+  // Incluir TODOS los items del inventario (catálogo + agregados manualmente)
+  Object.entries(inv).forEach(([cat,cd])=>{
+    if(typeof cd!=='object'||cd===null)return;
+    Object.entries(cd).forEach(([name,v])=>{
+      if(v&&typeof v==='object'&&isLow(v))low.push({cat,name,v});
+    });
   });
   low.sort((a,b)=>(a.v.qty/Math.max(a.v.min,1))-(b.v.qty/Math.max(b.v.min,1)));
   const cont=document.getElementById('alertasContainer');
@@ -1422,9 +1466,11 @@ function renderAlertas(){
 
 function stockPct(v){
   if(!v)return 0;
-  const max=Math.max(v.maxO||v.min*3||1, v.qty||0, 1);
-  if(max===0)return 0;
-  return Math.min(100,(v.qty||0)/max*100);
+  const qty=parseFloat(v.qty)||0;
+  const min=parseFloat(v.min)||1;
+  const maxO=parseFloat(v.maxO)||min*3;
+  const max=Math.max(maxO,qty,min,1);
+  return Math.min(100,qty/max*100);
 }
 function isLow(v){ 
   if(!v)return false;
@@ -1443,9 +1489,6 @@ function updateMenuPrice(cat,name,val){
     p.price=parseInt(val)||0;
     // Guardar en Firebase/localStorage
     lsSet('sessanio_v4_menu',MENU);
-    if(fireRef){
-      firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
-    }
     toast('💰 Precio actualizado: '+fmtCOP(p.price));
   }
 }
@@ -1454,9 +1497,6 @@ function deleteMenuProduct(cat,name){
   if(!MENU[cat])return;
   MENU[cat]=MENU[cat].filter(p=>p.name!==name);
   lsSet('sessanio_v4_menu',MENU);
-  if(fireRef){
-    firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
-  }
   renderMenu();toast('🗑 '+name+' eliminado del menú');
 }
 function addMenuProduct(){
@@ -1467,24 +1507,92 @@ function addMenuProduct(){
   if(!MENU[cat])MENU[cat]=[];
   MENU[cat].push({name,price,recipe:[]});
   lsSet('sessanio_v4_menu',MENU);
-  if(fireRef){
-    firebase.database(fireApp).ref('menu').set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
-  }
   document.getElementById('addProdModal').classList.remove('open');
   renderMenu();toast('✅ '+name+' agregado al menú');
 }
 
+
+function getCatalogOpts(selected){
+  let opts='<option value="">-- Seleccionar insumo --</option>';
+  // Unir catálogo fijo + todo lo que hay en inv
+  const allCats=new Map();
+  CATALOG.forEach(c=>{
+    const items=new Map();
+    c.items.forEach(it=>items.set(it.name,it.unit));
+    // Agregar items extra del inv real
+    if(inv[c.cat]){
+      Object.entries(inv[c.cat]).forEach(([n,v])=>{
+        if(v&&typeof v==='object'&&!items.has(n))items.set(n,v.unit||'und');
+      });
+    }
+    allCats.set(c.cat,items);
+  });
+  // Categorías extra en inv que no están en CATALOG
+  Object.keys(inv).forEach(cat=>{
+    if(!allCats.has(cat)&&typeof inv[cat]==='object'){
+      const items=new Map();
+      Object.entries(inv[cat]).forEach(([n,v])=>{
+        if(v&&typeof v==='object')items.set(n,v.unit||'und');
+      });
+      if(items.size>0)allCats.set(cat,items);
+    }
+  });
+  allCats.forEach((items,cat)=>{
+    if(items.size===0)return;
+    opts+='<optgroup label="'+cat+'">';
+    items.forEach((unit,name)=>{
+      opts+='<option value="'+name+'|'+unit+'"'+(selected===name?' selected':'')+'>'+name+'</option>';
+    });
+    opts+='</optgroup>';
+  });
+  opts+='<option value="__custom__">✏️ Escribir otro...</option>';
+  return opts;
+}
+
+function addReqRow(){
+  const container=document.getElementById('req_items');
+  if(!container)return;
+  const i=container.querySelectorAll('.req-row').length;
+  const div=document.createElement('div');
+  div.className='req-row';
+  div.style.cssText='display:grid;grid-template-columns:1fr 70px 70px 28px;gap:6px;margin-bottom:6px;align-items:center;';
+  div.innerHTML=`
+    <select id="f_rp${i}" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.78rem;" onchange="autoFillReqUnit(${i})">
+      ${getCatalogOpts()}
+    </select>
+    <input type="number" id="f_rq${i}" placeholder="Cant" min="0" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;text-align:center;font-size:.82rem;">
+    <input type="text" id="f_ru${i}" placeholder="Unidad" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.82rem;">
+    <button onclick="this.closest('.req-row').remove()" style="background:none;border:none;color:var(--rojo);font-size:1rem;cursor:pointer;">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function initReqRows(){
+  const container=document.getElementById('req_items');
+  if(!container)return;
+  container.innerHTML='';
+  for(let i=0;i<5;i++)addReqRow();
+}
 function autoFillReqUnit(i){
   const sel=document.getElementById('f_rp'+i);
   const val=sel.value;
-  if(val&&val!=='__custom__'){
+  const ruInp=document.getElementById('f_ru'+i);
+  if(!ruInp)return;
+  if(val&&val!=='__custom__'&&val!==''){
     const parts=val.split('|');
-    if(parts[1])document.getElementById('f_ru'+i).value=parts[1];
+    if(parts[1])ruInp.value=parts[1];
+  } else if(val==='__custom__'){
+    ruInp.value='';ruInp.focus();
   }
 }
 function updateAlertBanner(){
   let n=0;
-  CATALOG.forEach(c=>{const cd=inv[c.cat]||{};Object.values(cd).forEach(v=>{if(isLow(v))n++;});});
+  // Contar todos los items del inventario real (incluyendo agregados manualmente)
+  Object.values(inv).forEach(cat=>{
+    if(typeof cat==='object'&&cat!==null){
+      Object.values(cat).forEach(v=>{if(v&&typeof v==='object'&&isLow(v))n++;});
+    }
+  });
   const hoy=new Date();hoy.setHours(0,0,0,0);
   const manana=new Date(hoy);manana.setDate(manana.getDate()+1);
   produccion.forEach(p=>{if(!p.vence)return;const vd=new Date(p.vence);vd.setHours(0,0,0,0);if(vd<=manana)n++;});
@@ -1561,17 +1669,20 @@ function crearUsuario(){
   if(pas.length<6){toast('La contraseña debe tener al menos 6 caracteres','var(--rojo)');return;}
   if(users[usr]){toast('Ese nombre de usuario ya existe','var(--rojo)');return;}
   users[usr]={nombre:nom,rol,pass:pas};
-  saveUsers();renderUsers();closeUserModal();
-  toast(`✅ Usuario @${usr} creado`);
-  document.getElementById('nuNombre').value='';
-  document.getElementById('nuUser').value='';
-  document.getElementById('nuPass').value='';
+  saveUsers(()=>{
+    renderUsers();
+    closeUserModal();
+    toast('✅ Usuario @'+usr+' creado y guardado');
+    document.getElementById('nuNombre').value='';
+    document.getElementById('nuUser').value='';
+    document.getElementById('nuPass').value='';
+  });
 }
 
 function delUser(u){
   if(u==='admin'){toast('No puedes eliminar el admin principal','var(--rojo)');return;}
   if(!confirm(`¿Eliminar usuario @${u}?`))return;
-  delete users[u];saveUsers();renderUsers();toast(`Usuario @${u} eliminado`);
+  delete users[u];saveUsers(()=>{renderUsers();toast('Usuario @'+u+' eliminado');});
 }
 
 /* ══════════════════════════════════════════
@@ -1588,6 +1699,7 @@ async function connectFb(){
 async function initFirebase(){
   if(!cfg.fbUrl||!cfg.fbKey)return;
   try{
+    // Nota: si Firebase da PERMISSION_DENIED, la app funciona en modo local
     if(fireApp)fireApp.delete();
     fireApp=firebase.initializeApp({apiKey:cfg.fbKey,databaseURL:cfg.fbUrl},'sess-'+Date.now());
     fireDb=firebase.database(fireApp);
@@ -1598,45 +1710,7 @@ async function initFirebase(){
     fireMobRef=fireDb.ref('mobiliario');
     fireFmtRef=fireDb.ref('formatos');
     fireProdRef=fireDb.ref('produccion');
-    const fbMenuRef=fireDb.ref('menu');
-    let _menuNeedsRepair=false;
-    // Repara categorías que quedaron guardadas como objeto {i0:.., i1:..} en vez de array
-    // (bug de versiones anteriores que usaban sanitizeForFb sobre MENU)
-    function toArraySafe(val){
-      if(Array.isArray(val))return val;
-      if(val&&typeof val==='object'){
-        _menuNeedsRepair=true;
-        return Object.keys(val).sort((a,b)=>{
-          const na=parseInt(a.replace('i',''),10),nb=parseInt(b.replace('i',''),10);
-          return (isNaN(na)?0:na)-(isNaN(nb)?0:nb);
-        }).map(k=>val[k]);
-      }
-      return [];
-    }
-    const msnap2=await fbMenuRef.once('value');
-    if(msnap2.exists()){
-      const mdata=msnap2.val();
-      if(mdata&&typeof mdata==='object'){
-        Object.keys(mdata).forEach(cat=>{MENU[cat]=toArraySafe(mdata[cat]);});
-        lsSet('sessanio_v4_menu',MENU);
-        if(_menuNeedsRepair){
-          // Vuelve a guardar ya reparado como array real
-          fbMenuRef.set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
-        }
-      }
-    }
-    fbMenuRef.on('value',s=>{
-      if(!s.exists())return;
-      const mdata=s.val();
-      if(mdata&&typeof mdata==='object'){
-        _menuNeedsRepair=false;
-        Object.keys(mdata).forEach(cat=>{MENU[cat]=toArraySafe(mdata[cat]);});
-        lsSet('sessanio_v4_menu',MENU);
-        if(_menuNeedsRepair)fbMenuRef.set(JSON.parse(JSON.stringify(MENU))).catch(()=>{});
-        if(curScreen==='menu')renderMenu();
-        if(curScreen==='pos')renderPOS();
-      }
-    });
+    // Menu sync: solo localStorage
 
     // Sync inventario
     const snap=await fireRef.once('value');
@@ -1695,7 +1769,14 @@ async function initFirebase(){
         else if(curScreen==='alertas')renderAlertas();
       },300);
     });
-    fireUsersRef.on('value',s=>{if(s.exists()){users=s.val();lsSet(LSU,users);}});
+    let _userSaveTs=0;
+    fireUsersRef.on('value',s=>{
+      if(!s.exists())return;
+      // No sobreescribir si acabamos de guardar (evita race condition)
+      if(Date.now()-_userSaveTs<3000)return;
+      users=s.val();lsSet(LSU,users);
+      if(curScreen==='users')renderUsers();
+    });
     fireVentasRef.orderByChild('ts').limitToLast(200).on('value',s=>{
       if(!s.exists())return;
       const obj=s.val();
@@ -1732,36 +1813,20 @@ function sanitizeForFb(obj){
   return clean;
 }
 function restoreFromFb(obj,ref){
-  // Restore sanitized keys back using catalog as reference, WITHOUT descartar
-  // productos que el usuario agregó y que no existen en el catálogo original.
+  // Restore sanitized keys back using catalog as reference
   if(!obj)return obj;
   const result={};
-  // Mapa inverso categoría-saneada -> nombre real, usando el catálogo como referencia
-  const catLookup={};
-  Object.keys(ref).forEach(cat=>{catLookup[fbKey(cat)]=cat;});
-
-  Object.keys(obj).forEach(catKey=>{
-    const catName=catLookup[catKey]||catKey; // si no hay match, se usa el key tal cual (ya es el nombre real en la mayoría de los casos)
-    const refCat=ref[catName]||{};
-    const itemLookup={};
-    Object.keys(refCat).forEach(item=>{itemLookup[fbKey(item)]=item;});
-    if(!result[catName])result[catName]={};
-    const rawCat=obj[catKey]||{};
-    Object.keys(rawCat).forEach(itemKey=>{
-      const itemName=itemLookup[itemKey]||itemKey; // producto nuevo: se conserva con su nombre
-      result[catName][itemName]=rawCat[itemKey];
-    });
-  });
-
-  // Rellenar con productos del catálogo base que aún no existan en Firebase
-  // (por ejemplo si se agregó un producto nuevo al CATALOG en una actualización del código)
   Object.keys(ref).forEach(cat=>{
-    if(!result[cat])result[cat]={};
-    Object.keys(ref[cat]).forEach(item=>{
-      if(result[cat][item]===undefined)result[cat][item]=ref[cat][item];
-    });
+    const catKey=cat.replace(/[.#$/\[\]]/g,'_');
+    if(obj[catKey]){
+      result[cat]={};
+      Object.keys(ref[cat]).forEach(item=>{
+        const itemKey=item.replace(/[.#$/\[\]]/g,'_');
+        if(obj[catKey][itemKey])result[cat][item]=obj[catKey][itemKey];
+        else result[cat][item]=ref[cat][item];
+      });
+    }
   });
-
   return result;
 }
 function pushInv(changedCat, changedItem){
@@ -1818,8 +1883,7 @@ async function syncNow(){
       toast('✅ Inventario actualizado desde Firebase');
     }
   }catch(e){
-    updateSync('red','Error');
-    toast('❌ Error: '+e.message,'var(--rojo)');
+    updateSync('yellow','Local');
   }
 }
 
@@ -1846,6 +1910,23 @@ function updateSync(s,lbl){
   dot.className='sync-dot'+(s?' '+s:'');
   document.getElementById('syncLbl').textContent=lbl;
 }
+// Interceptar errores de Firebase globalmente y no mostrarlos como toast
+window.addEventListener('unhandledrejection',e=>{
+  if(e.reason&&(
+    (e.reason.message&&e.reason.message.includes('PERMISSION_DENIED'))||
+    (e.reason.code&&e.reason.code==='PERMISSION_DENIED')
+  )){
+    e.preventDefault();
+    updateSync('yellow','Local');
+  }
+});
+// Suprimir errores de consola de Firebase
+const _origConsoleError=console.error;
+console.error=function(...args){
+  const msg=args.join(' ');
+  if(msg.includes('PERMISSION_DENIED')||msg.includes('permission_denied')||msg.includes('@firebase'))return;
+  _origConsoleError.apply(console,args);
+};
 
 function openFbModal(){
   document.getElementById('fbUrl').value=cfg.fbUrl||'';
@@ -1877,6 +1958,9 @@ function ej(s){if(!s&&s!==0)return '';return String(s).replace(/\\/g,'\\\\').rep
 function ea(s){if(!s&&s!==0)return '';return String(s).replace(/"/g,'&quot;');}
 
 function toast(msg,bg){
+  // Suprimir errores de Firebase silenciosamente
+  if(msg&&(msg.includes('PERMISSION_DENIED')||msg.includes('permission_denied')||
+     msg.includes('firebaseio')||msg.includes('Error Firebase')))return;
   document.querySelectorAll('.toast').forEach(t=>t.remove());
   const t=document.createElement('div');t.className='toast';
   if(bg){t.style.background=bg;if(bg!=='var(--amarillo)')t.style.color='#fff';}
@@ -1892,7 +1976,7 @@ document.getElementById('searchInp').addEventListener('input',function(){searchQ
 
 
 /* PRODUCCIÓN Y VENCIMIENTOS */
-const VIDA_UTIL={'Cheesecake':4,'Torta':4,'Bizcocho':3,'Tiramisú':3,'Postre':2,'Panna Cotta':3,'Crema pastelera':2,'Crema agria':3,'Crema de manzana':3,'Salsa':3,'Granola':14,'Cornetti':1,'Pan':2,'Pancake':1,'Crepe':1,'Leche':3,'Queso':5,'Yogur':5,'Crema de leche':3,'Huevo':14,'Fruta':3,'Verdura':2,'Carne':2,'Pollo':2,'Tocineta':4};
+const VIDA_UTIL={'Cheesecake':4,'Torta':4,'Bizcocho':3,'Tiramisú':3,'Postre':2,'Panna Cotta':3,'Crema pastelera':2,'Crema agria':3,'Crema de manzana':3,'Salsa':3,'Granola':14,'Cornetti':2,'Pan':2,'Pancake':1,'Crepe':1,'Leche':3,'Queso':5,'Yogur':5,'Crema de leche':3,'Huevo':14,'Fruta':3,'Verdura':2,'Carne':2,'Pollo':2,'Tocineta':4};
 function vidaUtil(nombre){for(const[k,v]of Object.entries(VIDA_UTIL)){if(nombre.toLowerCase().includes(k.toLowerCase()))return v;}return 3;}
 function estadoVencimiento(p){const hoy=new Date();hoy.setHours(0,0,0,0);const vd=new Date(p.vence);vd.setHours(0,0,0,0);const diff=Math.round((vd-hoy)/(1000*60*60*24));if(diff<0)return{label:'VENCIDO',clase:'vencido',dot:'gris',diff};if(diff===0)return{label:'Vence HOY',clase:'vence-hoy',dot:'rojo',diff};if(diff===1)return{label:'Vence mañana',clase:'vence-manana',dot:'amarillo',diff};return{label:diff+' días',clase:'ok',dot:'verde',diff};}
 function pushProduccion(){lsSet(LSPROD,produccion);if(fireProdRef){const obj={};produccion.forEach(p=>obj[p.id]=p);fireProdRef.set(sanitizeForFb(obj)).catch(()=>{}); }}
@@ -2354,34 +2438,22 @@ function buildFormHTML(tipo){
     <div class="frow" style="margin-top:12px;"><label>Hora de cierre</label><input type="time" id="f_hora" value="${hora}"></div>
     <div class="frow"><label>Observaciones</label><textarea id="f_obs"></textarea></div>`;
 
-  if(tipo==='requisicion') return `
+  if(tipo==='requisicion'){
+    // initReqRows se llama después del render con setTimeout
+    setTimeout(()=>{if(typeof initReqRows==='function')initReqRows();},50);
+    return `
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
     <div class="fgrid2">
       <div class="frow"><label>Área que solicita</label>
         <select id="f_area"><option>Cocina</option><option>Barra</option><option>Caja/Servicio</option><option>Admin</option></select>
       </div>
-      <div class="frow"><label>Solicitado por</label><input type="text" id="f_resp" value="${sesion.nombre}"></div>
+      <div class="frow"><label>Solicitado por</label><input type="text" id="f_resp" value="${sesion&&sesion.nombre?sesion.nombre:''}"></div>
     </div>
     <div class="fsec">Productos a pedir</div>
-    <div id="req_items">
-      ${[0,1,2,3,4,5,6,7].map(i=>{
-        const opts='<option value="">-- Seleccionar insumo --</option>'+
-          (typeof CATALOG!=='undefined'?CATALOG.map(c=>
-            '<optgroup label="'+c.cat+'">'+
-            c.items.map(it=>'<option value="'+it.name+'|'+it.unit+'">'+it.name+'</option>').join('')+
-            '</optgroup>'
-          ).join(''):'');
-        return `<div style="display:grid;grid-template-columns:1fr 70px 70px;gap:6px;margin-bottom:6px;">
-          <select id="f_rp${i}" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.78rem;" onchange="autoFillReqUnit(${i})">
-            ${opts}
-            <option value="__custom__">✏️ Otro...</option>
-          </select>
-          <input type="number" id="f_rq${i}" placeholder="Cant" min="0" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;text-align:center;font-size:.82rem;">
-          <input type="text" id="f_ru${i}" placeholder="Unidad" style="border:1.5px solid var(--linea);border-radius:6px;padding:7px;font-size:.82rem;">
-        </div>`;
-      }).join('')}
-    </div>
+    <div id="req_items"></div>
+    <button type="button" onclick="addReqRow()" style="width:100%;padding:9px;border-radius:8px;border:1.5px dashed var(--menta-dark);background:transparent;color:var(--menta-dark);font-size:.82rem;font-weight:600;cursor:pointer;margin:8px 0;">+ Agregar producto</button>
     <div class="frow"><label>Observaciones / urgencia</label><textarea id="f_obs" placeholder="Indicar si algún producto es urgente..."></textarea></div>`;
+  }
 
   if(tipo==='limpieza') return `
     <div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="${hoy}"></div>
@@ -2428,6 +2500,50 @@ function generarPDF(){
   if(fireFmtRef)fireFmtRef.child(reg.id).set(reg).catch(()=>{});
 
   // Construir PDF via ventana de impresión
+  // Para requisición: leer filas dinámicas
+  if(fmtActivo==='requisicion'){
+    const rows=form.querySelectorAll('.req-row');
+    let reqFilas='';
+    rows.forEach((row,idx)=>{
+      const sel=row.querySelector('select');
+      const cant=row.querySelector('input[type="number"]');
+      const unit=row.querySelector('input[type="text"]');
+      if(!sel||!cant)return;
+      const prodName=sel.value&&sel.value!=='__custom__'&&sel.value!==''?sel.value.split('|')[0]:(unit?unit.value:'');
+      const cantidad=cant.value;
+      if(!prodName||!cantidad)return;
+      reqFilas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">${prodName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${cantidad}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${unit?unit.value:''}</td></tr>`;
+    });
+    const fecha=document.getElementById('f_fecha')?.value||new Date().toISOString().slice(0,10);
+    const resp=document.getElementById('f_resp')?.value||sesion.nombre;
+    const area=document.getElementById('f_area')?.value||'—';
+    const obs=document.getElementById('f_obs')?.value||'';
+    const reg={id:'r'+Date.now(),tipo:fmtActivo,ts:Date.now(),fecha,usuario:sesion.username,nombre:sesion.nombre};
+    formatos.unshift(reg);if(formatos.length>100)formatos=formatos.slice(0,100);
+    lsSet(LSFMT,formatos);if(fireFmtRef)fireFmtRef.child(reg.id).set(reg).catch(()=>{});
+    const w=window.open('','_blank');
+    w.document.write(`<html><head><title>Sessanio · Requisición</title>
+    <style>body{font-family:Arial,sans-serif;padding:28px;}
+    .header{display:flex;justify-content:space-between;border-bottom:2px solid #d4891a;padding-bottom:12px;margin-bottom:16px;}
+    .brand{font-size:1.5rem;font-style:italic;color:#2e7d32;font-family:Georgia,serif;}
+    .brand span{color:#d4891a;}table{width:100%;border-collapse:collapse;font-size:.9rem;}
+    th{background:#2e7d32;color:#fff;padding:8px 10px;text-align:left;}
+    .footer{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+    .firma{border-top:1px solid #999;padding-top:6px;font-size:.8rem;color:#666;text-align:center;}
+    </style></head><body>
+    <div class="header"><div><div class="brand">Sessanio <span>·</span> Brunch e Caffé</div><div style="font-size:.8rem;color:#666;">Carrera 1G N.° 46-65 · Tunja</div></div>
+    <div style="text-align:right;font-size:.82rem;"><strong>📦 Requisición de Insumos</strong><br>Área: ${area}<br>Fecha: ${fecha}<br>Por: ${resp}</div></div>
+    <table><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th></tr>${reqFilas||'<tr><td colspan="3" style="padding:10px;color:#999;">Sin productos agregados</td></tr>'}</table>
+    ${obs?`<div style="margin-top:16px;font-size:.85rem;color:#666;"><strong>Observaciones:</strong> ${obs}</div>`:''}
+    <div class="footer">
+      <div class="firma">${resp}<br><br>________________________<br>Solicitado por</div>
+      <div class="firma"><br><br>________________________<br>Autorizado por</div>
+    </div></body></html>`);
+    setTimeout(()=>w.print(),400);
+    closeFmtModal();renderFormatos();
+    toast('✅ Requisición generada');
+    return;
+  }
   const inputs=form.querySelectorAll('input,select,textarea');
   let filas='';
   inputs.forEach(el=>{
