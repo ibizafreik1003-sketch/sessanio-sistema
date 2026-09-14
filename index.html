@@ -774,16 +774,23 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
    USUARIOS (localStorage + Firebase)
 ══════════════════════════════════════════ */
 function loadUsers(){
-  const saved=lsGet(LSU);
-  if(saved&&Object.keys(saved).length>0){users=saved;return;}
-  // Usuarios por defecto
-  users={
+  // Usuarios base — siempre presentes sin importar localStorage
+  const BASE_USERS={
     admin:{nombre:'Administrador',rol:'admin',pass:'admin123'},
     cocina:{nombre:'Cocina Sessanio',rol:'cocina',pass:'cocina123'},
     caja:{nombre:'Caja Sessanio',rol:'caja',pass:'caja123'},
     julieth:{nombre:'Julieth Moreno',rol:'admin',pass:'Sessanio2026*'},
     simon:{nombre:'Simon Marin',rol:'cocina',pass:'Barra2026*'},
   };
+  // Cargar guardados y hacer merge: base + guardados
+  // Los guardados tienen prioridad (para cambios de contraseña, etc.)
+  // PERO los base siempre están disponibles
+  const saved=lsGet(LSU)||{};
+  users=Object.assign({},BASE_USERS,saved);
+  // Asegurar que los usuarios base siempre existen aunque localStorage los haya borrado
+  Object.keys(BASE_USERS).forEach(k=>{
+    if(!users[k])users[k]=BASE_USERS[k];
+  });
   lsSet(LSU,users);
 }
 function saveUsers(cb){
