@@ -859,6 +859,12 @@ function initApp(){
   inv=lsGet(LSK)||initInv();
   ventas=lsGet(LSV)||[];
   recipes=lsGet(LSR)||{};
+  // Merge: DEFAULT_RECIPES como base, recetas guardadas tienen prioridad
+  try{
+    if(typeof DEFAULT_RECIPES!=='undefined'&&DEFAULT_RECIPES){
+      recipes=Object.assign({},DEFAULT_RECIPES,recipes);
+    }
+  }catch(e){}
   mobiliario=lsGet(LSMOB)||initMob();
   formatos=lsGet(LSFMT)||[];
   produccion=lsGet(LSPROD)||[];
@@ -1415,7 +1421,7 @@ function cobrar(){
   // Descontar ingredientes según recetas editables
   const alerts=[];
   items.forEach(([name,d])=>{
-    const rec=recipes[name];
+    const rec=(recipes&&recipes[name])||(typeof DEFAULT_RECIPES!=='undefined'&&DEFAULT_RECIPES[name]);
     if(!rec||!rec.ingredientes||!rec.ingredientes.length){
       // sin receta: no descuenta, avisa en reporte
       return;
@@ -2521,59 +2527,117 @@ function generarPDF(){
   // Construir PDF via ventana de impresión
   // Para requisición: leer filas dinámicas
   if(fmtActivo==='requisicion'){
-    const rows=form.querySelectorAll('.req-row');
+    // Leer fecha, área, responsable y observaciones
+    const fechaReq=document.getElementById('f_fecha')?.value||new Date().toISOString().slice(0,10);
+    const respReq=document.getElementById('f_resp')?.value||(sesion&&sesion.nombre?sesion.nombre:'');
+    const areaReq=document.getElementById('f_area')?.value||'—';
+    const obsReq=document.getElementById('f_obs')?.value||'';
+    // Leer TODAS las filas de requisición — buscar en todo el documento
+    const reqContainer=document.getElementById('req_items');
+    const rows=reqContainer?reqContainer.querySelectorAll('.req-row'):[];
     let reqFilas='';
-    rows.forEach((row,idx)=>{
+    let itemCount=0;
+    rows.forEach((row)=>{
       const sel=row.querySelector('select');
-      const cant=row.querySelector('input[type="number"]');
-      const unit=row.querySelector('input[type="text"]');
-      if(!sel||!cant)return;
-      const prodName=sel.value&&sel.value!=='__custom__'&&sel.value!==''?sel.value.split('|')[0]:(unit?unit.value:'');
-      const cantidad=cant.value;
-      if(!prodName||!cantidad)return;
-      reqFilas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">${prodName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${cantidad}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${unit?unit.value:''}</td></tr>`;
+      const cants=row.querySelectorAll('input[type="number"]');
+      const texts=row.querySelectorAll('input:not([type="number"])');
+      if(!sel)return;
+      // Nombre del producto
+      let prodName='';
+      if(sel.value&&sel.value!==''&&sel.value!=='__custom__'){
+        prodName=sel.value.split('|')[0];
+      } else if(texts.length>0){
+        prodName=texts[0].value.trim();
+      }
+      if(!prodName)return;
+      // Cantidad
+      const cantidad=cants.length>0?cants[0].value:'';
+      if(!cantidad||cantidad==='0')return;
+      // Unidad
+      let unidad='';
+      if(sel.value&&sel.value.includes('|')){
+        unidad=sel.value.split('|')[1]||'';
+      } else if(texts.length>0){
+        unidad=texts[0].value||'';
+      }
+      itemCount++;
+      reqFilas+='<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:500;">'+prodName+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">'+cantidad+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #eee;">'+unidad+'</td></tr>';
     });
-    const fecha=document.getElementById('f_fecha')?.value||new Date().toISOString().slice(0,10);
-    const resp=document.getElementById('f_resp')?.value||sesion.nombre;
-    const area=document.getElementById('f_area')?.value||'—';
-    const obs=document.getElementById('f_obs')?.value||'';
-    const reg={id:'r'+Date.now(),tipo:fmtActivo,ts:Date.now(),fecha,usuario:sesion.username,nombre:sesion.nombre};
-    formatos.unshift(reg);if(formatos.length>100)formatos=formatos.slice(0,100);
-    lsSet(LSFMT,formatos);if(fireFmtRef)fireFmtRef.child(reg.id).set(reg).catch(()=>{});
-    const w=window.open('','_blank');
-    w.document.write(`<html><head><title>Sessanio · Requisición</title>
-    <style>body{font-family:Arial,sans-serif;padding:28px;}
-    .header{display:flex;justify-content:space-between;border-bottom:2px solid #d4891a;padding-bottom:12px;margin-bottom:16px;}
-    .brand{font-size:1.5rem;font-style:italic;color:#2e7d32;font-family:Georgia,serif;}
-    .brand span{color:#d4891a;}table{width:100%;border-collapse:collapse;font-size:.9rem;}
-    th{background:#2e7d32;color:#fff;padding:8px 10px;text-align:left;}
-    .footer{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
-    .firma{border-top:1px solid #999;padding-top:6px;font-size:.8rem;color:#666;text-align:center;}
-    </style></head><body>
-    <div class="header"><div><div class="brand">Sessanio <span>·</span> Brunch e Caffé</div><div style="font-size:.8rem;color:#666;">Carrera 1G N.° 46-65 · Tunja</div></div>
-    <div style="text-align:right;font-size:.82rem;"><strong>📦 Requisición de Insumos</strong><br>Área: ${area}<br>Fecha: ${fecha}<br>Por: ${resp}</div></div>
-    <table><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th></tr>${reqFilas||'<tr><td colspan="3" style="padding:10px;color:#999;">Sin productos agregados</td></tr>'}</table>
-    ${obs?`<div style="margin-top:16px;font-size:.85rem;color:#666;"><strong>Observaciones:</strong> ${obs}</div>`:''}
-    <div class="footer">
-      <div class="firma">${resp}<br><br>________________________<br>Solicitado por</div>
-      <div class="firma"><br><br>________________________<br>Autorizado por</div>
-    </div></body></html>`);
-    setTimeout(()=>w.print(),400);
+    // Guardar registro
+    const regReq={id:'r'+Date.now(),tipo:'requisicion',ts:Date.now(),fecha:fechaReq,usuario:sesion&&sesion.username?sesion.username:'admin',nombre:sesion&&sesion.nombre?sesion.nombre:''};
+    formatos.unshift(regReq);if(formatos.length>100)formatos=formatos.slice(0,100);
+    lsSet(LSFMT,formatos);
+    if(fireFmtRef)fireFmtRef.child(regReq.id).set(regReq).catch(()=>{});
+    // Generar HTML del PDF
+    const pdfHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Sessanio - Requisicion</title>'
+      +'<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:28px;color:#1b3a1e;}'
+      +'.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #d4891a;padding-bottom:14px;margin-bottom:18px;}'
+      +'.brand{font-size:1.6rem;font-style:italic;color:#2e7d32;font-family:Georgia,serif;}'
+      +'.brand span{color:#d4891a;}.sub{font-size:.8rem;color:#666;margin-top:4px;}'
+      +'.meta{text-align:right;font-size:.82rem;color:#555;line-height:1.6;}'
+      +'table{width:100%;border-collapse:collapse;margin-top:8px;}'
+      +'th{background:#2e7d32;color:#fff;padding:10px 12px;text-align:left;font-size:.9rem;}'
+      +'td{padding:9px 12px;border-bottom:1px solid #e0e0e0;font-size:.88rem;}'
+      +'tr:last-child td{border-bottom:none;}'
+      +'.footer{margin-top:50px;display:flex;justify-content:space-around;}'
+      +'.firma{text-align:center;font-size:.82rem;color:#555;}'
+      +'.firma .line{border-top:1px solid #999;margin-top:40px;padding-top:6px;width:180px;margin-left:auto;margin-right:auto;}'
+      +'@media print{body{padding:14px;}}</style></head><body>'
+      +'<div class="header">'
+      +'<div><div class="brand">Sessanio <span>·</span> Brunch e Caffé</div>'
+      +'<div class="sub">Carrera 1G N.° 46-65 · Tunja, Boyacá · Tel: 3207679070</div></div>'
+      +'<div class="meta"><strong>📦 REQUISICIÓN DE INSUMOS</strong><br>Área: '+areaReq+'<br>Fecha: '+fechaReq+'<br>Solicitado por: '+respReq+'</div>'
+      +'</div>'
+      +'<table><thead><tr><th>Producto / Insumo</th><th style="text-align:center;width:100px;">Cantidad</th><th style="width:100px;">Unidad</th></tr></thead><tbody>'
+      +(reqFilas||'<tr><td colspan="3" style="padding:14px;color:#999;text-align:center;">Sin productos seleccionados</td></tr>')
+      +'</tbody></table>'
+      +(obsReq?'<div style="margin-top:18px;padding:12px;background:#f9f9f9;border-radius:6px;font-size:.85rem;"><strong>Observaciones:</strong> '+obsReq+'</div>':'')
+      +'<div class="footer">'
+      +'<div class="firma"><div class="line">'+respReq+'</div>Solicitado por</div>'
+      +'<div class="firma"><div class="line">&nbsp;</div>Autorizado por</div>'
+      +'</div>'
+      +'</body></html>';
+    // Usar iframe para evitar popup blocker
+    const printFrame=document.createElement('iframe');
+    printFrame.style.cssText='position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;';
+    document.body.appendChild(printFrame);
+    printFrame.contentDocument.open();
+    printFrame.contentDocument.write(pdfHTML);
+    printFrame.contentDocument.close();
+    setTimeout(()=>{
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      setTimeout(()=>document.body.removeChild(printFrame),2000);
+    },500);
     closeFmtModal();renderFormatos();
-    toast('✅ Requisición generada');
+    toast('✅ Requisición lista para imprimir'+(itemCount===0?' (sin productos)':' · '+itemCount+' productos'));
     return;
   }
   const inputs=form.querySelectorAll('input,select,textarea');
   let filas='';
   inputs.forEach(el=>{
-    const lbl=el.closest('.frow')?.querySelector('label')?.textContent||el.id;
-    let val=el.type==='checkbox'?(el.checked?'✅':'☐'):el.value;
+    if(!el.id&&el.type!=='checkbox')return;
     if(el.type==='checkbox'){
-      const lblEl=document.querySelector(`label[for="${el.id}"]`);
-      const txt=lblEl?lblEl.textContent:el.id;
-      filas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${txt}</td><td style="text-align:center;border-bottom:1px solid #eee;">${val}</td></tr>`;
-    } else if(val&&lbl&&lbl!==el.id){
-      filas+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">${lbl}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${val}</td></tr>`;
+      // Buscar label por: for= atributo, o parent label, o siguiente sibling
+      const lblEl=el.id?document.querySelector('label[for="'+el.id+'"]'):null;
+      const txt=lblEl?lblEl.textContent.trim():(el.closest('div')?.textContent?.trim()||'');
+      if(!txt||txt.length<2)return;
+      // Solo mostrar los marcados para no llenar el PDF de ☐
+      if(el.checked){
+        filas+='<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">'+txt+'</td>'
+          +'<td style="text-align:center;border-bottom:1px solid #eee;color:#2e7d32;font-weight:700;">✅</td></tr>';
+      }
+    } else {
+      // Inputs de texto/número/select/textarea
+      const lbl=el.closest('.frow')?.querySelector('label')?.textContent?.trim()||
+                el.closest('.ff')?.querySelector('label')?.textContent?.trim()||'';
+      const val=el.value;
+      if(val&&lbl&&lbl!==el.id&&lbl.length>1){
+        filas+='<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">'+lbl+'</td>'
+          +'<td style="padding:6px 10px;border-bottom:1px solid #eee;">'+val+'</td></tr>';
+      }
     }
   });
 
