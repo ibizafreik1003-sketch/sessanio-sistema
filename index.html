@@ -857,6 +857,7 @@ function initApp(){
   document.getElementById('rolBadge').textContent=
     sesion.rol==='admin'?'👑 Admin':sesion.rol==='cocina'?'🍳 Cocina':'💰 Caja';
   inv=lsGet(LSK)||initInv();
+  collapsed={}; // Empezar con todo expandido en cada sesión
   ventas=lsGet(LSV)||[];
   recipes=lsGet(LSR)||{};
   // Merge: DEFAULT_RECIPES como base, recetas guardadas tienen prioridad
@@ -967,6 +968,13 @@ function setScreen(s){
    INVENTARIO MATERIA PRIMA
 ══════════════════════════════════════════ */
 function renderInv(){
+  // Restaurar estado colapsado desde session si existe
+  if(!Object.keys(collapsed).length){
+    try{
+      const saved=sessionStorage.getItem('sess_collapsed');
+      if(saved)Object.assign(collapsed,JSON.parse(saved));
+    }catch(e){}
+  }
   const term=searchQ.toLowerCase();
   let html='';
   // Todas las categorías del catálogo + cualquier categoría extra en inv
@@ -1022,7 +1030,12 @@ function renderInv(){
   document.getElementById('invContainer').innerHTML=html;
 }
 
-function toggleCat(cat){collapsed[cat]=!collapsed[cat];renderInv();}
+function toggleCat(cat){
+  collapsed[cat]=!collapsed[cat];
+  // Guardar estado colapsado en session (no en localStorage)
+  try{sessionStorage.setItem('sess_collapsed',JSON.stringify(collapsed));}catch(e){}
+  renderInv();
+}
 
 // Cambios pendientes de guardar
 let _pendingChanges={};
@@ -1178,7 +1191,19 @@ function addItem(cat,btn){
   // Expandir categoría y re-renderizar ANTES del push a Firebase
   collapsed[cat]=false;
   renderInv();
-  toast('✅ '+name+' agregado');
+  // Scroll hasta el producto nuevo
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('.item-row');
+    rows.forEach(row=>{
+      const iname=row.querySelector('.iname');
+      if(iname&&iname.textContent.trim().startsWith(name)){
+        row.style.background='var(--dorado-pale)';
+        row.scrollIntoView({behavior:'smooth',block:'center'});
+        setTimeout(()=>{row.style.background='';},2000);
+      }
+    });
+  },100);
+  toast('✅ '+name+' agregado en '+cat);
   updateAlertBanner();
   // Push a Firebase en background (silencioso)
   if(fireRef){
