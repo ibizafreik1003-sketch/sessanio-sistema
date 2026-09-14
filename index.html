@@ -1152,21 +1152,31 @@ function delItem(cat,name){
 
 function addItem(cat,btn){
   const row=btn.parentElement;
-  const name=row.querySelector('[name=nn]').value.trim();
-  const unit=row.querySelector('[name=nu]').value;
-  const min=parseInt(row.querySelector('[name=nm]').value)||1;
+  const nameInp=row.querySelector('[name=nn]');
+  const unitSel=row.querySelector('[name=nu]');
+  const minInp=row.querySelector('[name=nm]');
+  if(!nameInp){toast('Error: campos no encontrados','var(--rojo)');return;}
+  const name=nameInp.value.trim();
+  const unit=unitSel?unitSel.value:'unidad';
+  const min=parseInt(minInp?minInp.value:0)||1;
   if(!name){toast('Escribe el nombre del producto','var(--rojo)');return;}
+  if(inv[cat]&&inv[cat][name]){toast('Ese producto ya existe en esta categoría','var(--amarillo)');return;}
+  // Agregar al inventario local PRIMERO
   if(!inv[cat])inv[cat]={};
   inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
+  // Guardar local inmediatamente
   lsSet(LSK,inv);
-  collapsed[cat]=false; // expandir la categoría para que el producto sea visible
+  // Limpiar campos
+  nameInp.value='';
+  if(minInp)minInp.value='';
+  // Expandir categoría y re-renderizar ANTES del push a Firebase
+  collapsed[cat]=false;
+  renderInv();
+  toast('✅ '+name+' agregado');
+  updateAlertBanner();
+  // Push a Firebase en background (silencioso)
   if(fireRef){
-    fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv))))
-      .then(()=>{toast('✅ '+name+' agregado y guardado');renderInv();})
-      .catch(()=>{toast('✅ '+name+' agregado (solo local)');renderInv();});
-  } else {
-    toast('✅ '+name+' agregado');
-    renderInv();
+    fireRef.set(sanitizeForFb(JSON.parse(JSON.stringify(inv)))).catch(()=>{});
   }
 }
 
