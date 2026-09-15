@@ -740,6 +740,49 @@ const MENU={
   "Postres completos":[{name:"Cheesecake Pistacho Completo",price:120000,recipe:[]},{name:"Cheesecake de Frutos Rojos completo",price:135000,recipe:[]},{name:"Cheesecake horneado completo",price:120000,recipe:[]},{name:"TORTA 6 PERSONAS DISEÑO",price:70000,recipe:[]},{name:"Tiramisú completo",price:150000,recipe:[]},{name:"Torta 4 porciones",price:50000,recipe:[]},{name:"Torta cappuccino completa",price:120000,recipe:[]},{name:"Torta chocolate completa",price:120000,recipe:[]},{name:"Torta grado",price:220000,recipe:[]},{name:"Torta red velvet Completa",price:120000,recipe:[]}],
   "Almuerzo del día":[{name:"Almuerzo del día",price:18000,recipe:[]},{name:"Almuerzo Ejecutivo",price:22000,recipe:[]},{name:"Bandeja del día",price:17000,recipe:[]}]
 };
+// Copia intacta del menú tal como está escrito en el código. NUNCA se modifica.
+// Se usa como base para que los productos nuevos agregados directamente en el
+// código (vía GitHub) SIEMPRE aparezcan, aunque el dispositivo ya tenga un
+// menú guardado localmente o en Firebase de antes.
+const MENU_SOURCE=JSON.parse(JSON.stringify(MENU));
+// Fusiona el menú base del código con lo guardado (local o Firebase):
+// - Todo producto que existe en el código SIEMPRE aparece (con precio
+//   actualizado si el admin lo editó manualmente).
+// - Los productos agregados manualmente desde la app (que no están en el
+//   código) se conservan.
+// - Los productos eliminados manualmente (deletedList) no reaparecen aunque
+//   sigan en el código.
+function mergeMenu(base,saved,deletedList){
+  const deleted=new Set(deletedList||[]);
+  const merged={};
+  Object.keys(base).forEach(cat=>{
+    const baseItems=base[cat]||[];
+    const savedItems=Array.isArray(saved&&saved[cat])?saved[cat]:[];
+    const savedByName={};
+    savedItems.forEach(p=>{if(p&&p.name)savedByName[p.name]=p;});
+    const usedNames=new Set();
+    const items=[];
+    baseItems.forEach(p=>{
+      usedNames.add(p.name);
+      if(deleted.has(cat+'|||'+p.name))return; // eliminado manualmente, no reaparece
+      const sv=savedByName[p.name];
+      items.push(sv?Object.assign({},p,{price:sv.price}):Object.assign({},p));
+    });
+    savedItems.forEach(p=>{
+      if(p&&p.name&&!usedNames.has(p.name)&&!deleted.has(cat+'|||'+p.name))items.push(p);
+    });
+    merged[cat]=items;
+  });
+  if(saved)Object.keys(saved).forEach(cat=>{
+    if(!merged[cat]&&Array.isArray(saved[cat]))merged[cat]=saved[cat].filter(p=>p&&p.name&&!deleted.has(cat+'|||'+p.name));
+  });
+  return merged;
+}
+// Reemplaza el contenido de un objeto MENU (const) en el sitio, sin perder la referencia
+function setMenuContents(target,newData){
+  Object.keys(target).forEach(k=>delete target[k]);
+  Object.keys(newData).forEach(k=>{target[k]=newData[k];});
+}
 
 /* ══════════════════════════════════════════
    ESTADO
@@ -760,7 +803,10 @@ let users={};       // usuarios
 let sesion=null;    // usuario logueado
 let cart={};        // {nombre:{qty,price}}
 let recipes={};     // {nombre_producto:{ingredientes:[{ing,qty,unit}]}}
-let fireApp=null,fireDb=null,fireRef=null,fireUsersRef=null,fireVentasRef=null,fireRecRef=null,fireMobRef=null,fireFmtRef=null,fireProdRef=null;
+let fireApp=null,fireDb=null,fireRef=null,fireUsersRef=null,fireVentasRef=null,fireRecRef=null,fireMobRef=null,fireFmtRef=null,fireProdRef=null,fireMenuRef=null,fireMenuDelRef=null;
+const LSMENUDEL='sessanio_v4_menu_del';
+let menuDeleted=lsGet(LSMENUDEL)||[]; // ["categoria|||nombre", ...] productos quitados manualmente del menú
+let _menuSaveTs=0;
 let produccion=[];
 let mobiliario={};
 let formatos=[];
@@ -869,14 +915,12 @@ function initApp(){
   mobiliario=lsGet(LSMOB)||initMob();
   formatos=lsGet(LSFMT)||[];
   produccion=lsGet(LSPROD)||[];
-  // Cargar menú personalizado si existe (precios editados, productos nuevos)
+  // Cargar menú personalizado si existe (precios editados, productos agregados manualmente).
+  // Se FUSIONA con MENU_SOURCE (lo escrito en el código) en vez de reemplazar
+  // categorías completas — así un producto nuevo agregado directamente en el
+  // código SIEMPRE aparece, aunque el dispositivo tenga un menú viejo guardado.
   const savedMenu=lsGet('sessanio_v4_menu');
-  if(savedMenu&&typeof savedMenu==='object'){
-    Object.keys(savedMenu).forEach(cat=>{
-      if(MENU[cat]!==undefined)MENU[cat]=savedMenu[cat];
-      else MENU[cat]=savedMenu[cat];
-    });
-  }
+  setMenuContents(MENU,mergeMenu(MENU_SOURCE,savedMenu,menuDeleted));
   // Si el inventario existe pero no tiene categorías del catálogo, reinicializar
   const invCats=Object.keys(inv);
   if(invCats.length===0||(CATALOG&&CATALOG.length>invCats.length)){
@@ -1185,6 +1229,10 @@ function addItem(cat,btn){
   inv[cat][name]={qty:0,min,unit,maxO:min*3,_by:sesion&&sesion.username?sesion.username:'admin',_ts:Date.now()};
   // Guardar local inmediatamente
   lsSet(LSK,inv);
+  // Marcar como pendiente para que el listener de Firebase no lo sobreescriba
+  // mientras el push todavía está en camino (defensa adicional al fix de restoreFromFb)
+  _pendingChanges[cat+'|||'+name]=true;
+  setTimeout(()=>{delete _pendingChanges[cat+'|||'+name];},4000);
   // Limpiar campos
   nameInp.value='';
   if(minInp)minInp.value='';
@@ -1532,13 +1580,21 @@ function isCrit(v){
 }
 
 
+function pushMenu(){
+  _menuSaveTs=Date.now();
+  lsSet('sessanio_v4_menu',MENU);
+  if(fireMenuRef)fireMenuRef.set(sanitizeForFb(MENU)).catch(()=>{});
+}
+function pushMenuDeleted(){
+  lsSet(LSMENUDEL,menuDeleted);
+  if(fireMenuDelRef)fireMenuDelRef.set(menuDeleted).catch(()=>{});
+}
 function updateMenuPrice(cat,name,val){
   if(!MENU[cat])return;
   const p=MENU[cat].find(x=>x.name===name);
   if(p){
     p.price=parseInt(val)||0;
-    // Guardar en Firebase/localStorage
-    lsSet('sessanio_v4_menu',MENU);
+    pushMenu();
     toast('💰 Precio actualizado: '+fmtCOP(p.price));
   }
 }
@@ -1546,7 +1602,9 @@ function deleteMenuProduct(cat,name){
   if(!confirm('¿Eliminar '+name+' del menú?'))return;
   if(!MENU[cat])return;
   MENU[cat]=MENU[cat].filter(p=>p.name!==name);
-  lsSet('sessanio_v4_menu',MENU);
+  const key=cat+'|||'+name;
+  if(!menuDeleted.includes(key)){menuDeleted.push(key);pushMenuDeleted();}
+  pushMenu();
   renderMenu();toast('🗑 '+name+' eliminado del menú');
 }
 function addMenuProduct(){
@@ -1556,7 +1614,11 @@ function addMenuProduct(){
   if(!name||!cat){toast('Completa categoría y nombre','var(--rojo)');return;}
   if(!MENU[cat])MENU[cat]=[];
   MENU[cat].push({name,price,recipe:[]});
-  lsSet('sessanio_v4_menu',MENU);
+  // Si antes se había eliminado un producto con el mismo nombre, se reactiva
+  const key=cat+'|||'+name;
+  const delIdx=menuDeleted.indexOf(key);
+  if(delIdx!==-1){menuDeleted.splice(delIdx,1);pushMenuDeleted();}
+  pushMenu();
   document.getElementById('addProdModal').classList.remove('open');
   renderMenu();toast('✅ '+name+' agregado al menú');
 }
@@ -1760,7 +1822,8 @@ async function initFirebase(){
     fireMobRef=fireDb.ref('mobiliario');
     fireFmtRef=fireDb.ref('formatos');
     fireProdRef=fireDb.ref('produccion');
-    // Menu sync: solo localStorage
+    fireMenuRef=fireDb.ref('menu');
+    fireMenuDelRef=fireDb.ref('menu_deleted');
 
     // Sync inventario
     const snap=await fireRef.once('value');
@@ -1793,6 +1856,42 @@ async function initFirebase(){
     const rsnap=await fireRecRef.once('value');
     if(rsnap.exists()){recipes=rsnap.val();lsSet(LSR,recipes);}
     fireRecRef.on('value',s=>{if(s.exists()){recipes=s.val();lsSet(LSR,recipes);if(curScreen==='rec')renderRecetas();}});
+
+    // Sync menú (Productos a la venta) — antes solo se guardaba en localStorage
+    // de cada dispositivo, por eso un producto agregado en un celular nunca
+    // aparecía en los demás. Ahora se sincroniza por Firebase como el resto.
+    const delSnap=await fireMenuDelRef.once('value');
+    if(delSnap.exists()){
+      const fbDel=delSnap.val();
+      menuDeleted=Array.isArray(fbDel)?fbDel:Object.values(fbDel||{});
+      lsSet(LSMENUDEL,menuDeleted);
+    } else if(menuDeleted.length){
+      await fireMenuDelRef.set(menuDeleted);
+    }
+    const mnsnap=await fireMenuRef.once('value');
+    if(mnsnap.exists()){
+      setMenuContents(MENU,mergeMenu(MENU_SOURCE,mnsnap.val(),menuDeleted));
+      lsSet('sessanio_v4_menu',MENU);
+    } else {
+      await fireMenuRef.set(sanitizeForFb(MENU));
+    }
+    fireMenuRef.on('value',s=>{
+      if(!s.exists())return;
+      if(Date.now()-_menuSaveTs<3000)return;
+      setMenuContents(MENU,mergeMenu(MENU_SOURCE,s.val(),menuDeleted));
+      lsSet('sessanio_v4_menu',MENU);
+      if(curScreen==='menu')renderMenu();
+      else if(curScreen==='rec')renderRecetas();
+    });
+    fireMenuDelRef.on('value',s=>{
+      if(!s.exists())return;
+      if(Date.now()-_menuSaveTs<3000)return;
+      const fbDel=s.val();
+      menuDeleted=Array.isArray(fbDel)?fbDel:Object.values(fbDel||{});
+      lsSet(LSMENUDEL,menuDeleted);
+      setMenuContents(MENU,mergeMenu(MENU_SOURCE,lsGet('sessanio_v4_menu'),menuDeleted));
+      if(curScreen==='menu')renderMenu();
+    });
 
     // Real-time listeners
     let _fbRenderTimer=null;
@@ -1863,19 +1962,40 @@ function sanitizeForFb(obj){
   return clean;
 }
 function restoreFromFb(obj,ref){
-  // Restore sanitized keys back using catalog as reference
+  // Restore sanitized keys back using catalog as reference.
+  // IMPORTANTE: antes esta función solo reconstruía categorías/productos que
+  // ya existían en `ref` (el catálogo fijo del código), así que cualquier
+  // producto nuevo agregado manualmente (ej. "leche deslactosada") se
+  // perdía cada vez que llegaba una actualización de Firebase, incluso el
+  // eco del propio guardado. Ahora se preserva TODO lo que venga en `obj`,
+  // usando `ref` solo para des-sanitizar los nombres conocidos.
   if(!obj)return obj;
+  ref=ref||{};
   const result={};
+  // Mapas inversos catKey->catName e itemKey->itemName por categoría, a partir de ref
+  const catKeyToName={};
+  Object.keys(ref).forEach(cat=>{catKeyToName[fbKey(cat)]=cat;});
+  Object.keys(obj).forEach(catKey=>{
+    const catName=catKeyToName[catKey]||catKey; // si no está en ref, es una categoría nueva: se conserva tal cual
+    const refCat=ref[catName]||{};
+    const itemKeyToName={};
+    Object.keys(refCat).forEach(item=>{itemKeyToName[fbKey(item)]=item;});
+    const fbCatData=obj[catKey]||{};
+    const catResult={};
+    Object.keys(fbCatData).forEach(itemKey=>{
+      const itemName=itemKeyToName[itemKey]||itemKey; // producto nuevo: se conserva con su clave
+      catResult[itemName]=fbCatData[itemKey];
+    });
+    result[catName]=catResult;
+  });
+  // Productos/categorías que están en el catálogo del código pero AÚN no
+  // llegaron a Firebase (ej. se acaban de agregar en el código y nadie ha
+  // guardado todavía) — se completan con su valor por defecto del catálogo.
   Object.keys(ref).forEach(cat=>{
-    const catKey=cat.replace(/[.#$/\[\]]/g,'_');
-    if(obj[catKey]){
-      result[cat]={};
-      Object.keys(ref[cat]).forEach(item=>{
-        const itemKey=item.replace(/[.#$/\[\]]/g,'_');
-        if(obj[catKey][itemKey])result[cat][item]=obj[catKey][itemKey];
-        else result[cat][item]=ref[cat][item];
-      });
-    }
+    if(!result[cat])result[cat]={};
+    Object.keys(ref[cat]).forEach(item=>{
+      if(!(item in result[cat]))result[cat][item]=ref[cat][item];
+    });
   });
   return result;
 }
